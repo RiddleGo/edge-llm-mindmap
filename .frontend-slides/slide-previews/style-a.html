@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>端侧部署 · 预览</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+  html,body{margin:0;height:100%;background:#05070a;overflow:hidden}
+  .deck-viewport{position:fixed;inset:0}
+  .deck-stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;background:#070b10;
+    background-image:
+      linear-gradient(rgba(34,197,94,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,197,94,.06) 1px, transparent 1px);
+    background-size:48px 48px}
+  .slide{position:absolute;inset:0;color:#e8f5e9;font-family:"IBM Plex Mono",monospace}
+  .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(34,197,94,.18),transparent 70%);left:50%;top:42%;transform:translate(-50%,-50%);filter:blur(8px)}
+  .hub{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:280px;height:280px;border:2px solid #22c55e;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(7,11,16,.85);box-shadow:0 0 40px rgba(34,197,94,.25)}
+  .hub strong{font-family:Syne,sans-serif;font-size:42px;line-height:1.15;font-weight:800}
+  .hub span{display:block;margin-top:10px;font-size:14px;color:#86efac;letter-spacing:.12em}
+  .node{position:absolute;padding:14px 22px;border:1px solid #166534;background:#0b1218;font-size:18px;color:#bbf7d0;white-space:nowrap}
+  .n1{left:180px;top:220px}.n2{right:160px;top:200px}.n3{left:140px;top:620px}.n4{right:140px;top:640px}
+  .n5{left:520px;top:140px}.n6{right:480px;top:820px}
+  .line{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#22c55e88,transparent);transform-origin:left center}
+  .meta{position:absolute;left:64px;bottom:56px;font-size:16px;color:#64748b}
+  .meta b{color:#86efac;font-weight:600}
+  .tag{position:absolute;right:64px;top:48px;border:1px solid #22c55e55;padding:8px 16px;font-size:14px;color:#86efac;letter-spacing:.2em}
+  h1{position:absolute;left:64px;top:48px;margin:0;font-family:Syne,sans-serif;font-size:28px;font-weight:700;color:#f0fdf4}
+</style>
+</head>
+<body>
+<div class="deck-viewport"><div class="deck-stage" id="stage">
+  <section class="slide">
+    <div class="glow"></div>
+    <h1>端侧大模型部署</h1>
+    <div class="tag">MIND MAP · ①–⑯</div>
+    <div class="hub"><div><strong>知识树</strong><span>TEACHING MAP</span></div></div>
+    <div class="node n1">① 底座 · Roofline</div>
+    <div class="node n2">③ 量化 · PTQ/QAT</div>
+    <div class="node n3">⑭ 平台工具链</div>
+    <div class="node n4">⑮ 门禁 · 车规</div>
+    <div class="node n5">④ 性能 · Prefill/Decode</div>
+    <div class="node n6">⑯ AI 编译器</div>
+    <div class="meta"><b>完整三级</b> · 阅读向 · 教学讲解</div>
+  </section>
+</div></div>
+<script>
+(function(){const s=document.getElementById('stage');function fit(){const sx=innerWidth/1920,sy=innerHeight/1080,sc=Math.min(sx,sy);const x=(innerWidth-1920*sc)/2,y=(innerHeight-1080*sc)/2;s.style.transform=`translate(${x}px,${y}px) scale(${sc})`;}fit();addEventListener('resize',fit);})();
+</script>
+</body>
+</html>

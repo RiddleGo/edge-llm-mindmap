@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>端侧大模型部署 · 思维导图</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+SC:wght@400;500;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+<style>
+/* === THEME: Terminal Blueprint === */
+:root {
+    --stage-bg: #05070a;
+    --slide-bg: #070b10;
+    --bg-primary: #070b10;
+    --grid-line: rgba(74, 222, 128, 0.06);
+    --accent: #4ade80;
+    --accent-bright: #86efac;
+    --accent-dim: #166534;
+    --accent-glow: rgba(74, 222, 128, 0.32);
+    --text-primary: #ecfdf5;
+    --text-muted: #7a8f82;
+    --text-leaf: #bbf7d0;
+    --node-bg: #0b1218;
+    --node-active: #0f2a18;
+    --danger: #86efac;
+    --font-display: "Syne", "IBM Plex Sans SC", sans-serif;
+    --font-body: "IBM Plex Sans SC", "Noto Sans SC", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --fs-root: 28px;
+    --fs-chapter: 16px;
+    --fs-topic: 15px;
+    --fs-term: 14px;
+    --fs-label: 12px;
+    --fs-detail-title: 22px;
+    --fs-detail-body: 16px;
+    --col-gap: 40px;
+    --node-gap: 12px;
+    --node-inactive-opacity: 0.55;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --duration-normal: 0.45s;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+/* === GRID STAGE === */
+.slide {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background-color: var(--bg-primary);
+    background-image:
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 48px 48px;
+}
+
+.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity var(--duration-normal) var(--ease-out-expo),
+                transform var(--duration-normal) var(--ease-out-expo);
+}
+.slide.visible .reveal { opacity: 1; transform: none; }
+.slide.visible .reveal:nth-child(1) { transition-delay: 0.05s; }
+.slide.visible .reveal:nth-child(2) { transition-delay: 0.14s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: 0.24s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: 0.34s; }
+
+/* === TITLE SLIDE === */
+.title-slide .glow {
+    position: absolute;
+    width: 720px; height: 720px;
+    left: 50%; top: 44%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, var(--accent-glow), transparent 68%);
+    pointer-events: none;
+}
+.title-kicker {
+    position: absolute; left: 88px; top: 88px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.32em; font-size: 14px; font-weight: 500;
+    color: var(--accent-bright);
+}
+.title-slide h1 {
+    position: absolute; left: 88px; top: 300px;
+    font-family: var(--font-display); font-weight: 800;
+    font-size: 96px; line-height: 1.06; letter-spacing: -0.02em;
+    max-width: 1200px;
+    color: var(--text-primary);
+}
+.title-lead {
+    position: absolute; left: 88px; top: 560px;
+    font-family: var(--font-body); font-weight: 400;
+    font-size: 26px; color: var(--text-leaf);
+    max-width: 920px; line-height: 1.72;
+}
+.enter-btn {
+    position: absolute; left: 88px; bottom: 156px;
+    border: 1px solid var(--accent-bright); background: transparent;
+    color: var(--accent-bright);
+    font: 600 17px/1 var(--font-mono);
+    padding: 18px 36px; cursor: pointer; letter-spacing: 0.1em;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+.enter-btn:hover { background: var(--accent); color: #04110a; border-color: var(--accent); }
+.title-hint {
+    position: absolute; right: 88px; bottom: 96px;
+    font-family: var(--font-mono);
+    font-size: 13px; line-height: 1.65;
+    color: var(--text-muted); max-width: 420px; text-align: right;
+}
+
+/* === MAP SLIDE === */
+.map-top {
+    position: absolute; left: 48px; right: 48px; top: 20px; height: 64px;
+    display: flex; align-items: center; gap: 12px;
+}
+.map-hint {
+    position: absolute; left: 48px; right: 48px; top: 84px;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 400;
+    color: var(--text-muted); letter-spacing: 0.04em; line-height: 1.4;
+    opacity: 0.85; pointer-events: none;
+}
+.map-board {
+    position: absolute; left: 0; top: 112px; right: 0; bottom: 0;
+.map-top h2 {
+    flex: 0 0 auto;
+    font-family: var(--font-display); font-size: 30px; font-weight: 800;
+    letter-spacing: -0.01em; margin-right: 20px;
+}
+.crumb {
+    flex: 1 1 auto; min-width: 0;
+    font-family: var(--font-body); font-size: 15px; font-weight: 400;
+    color: var(--text-muted); line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-right: 8px;
+}
+.tool {
+    flex: 0 0 auto; white-space: nowrap;
+    border: 1px solid var(--accent-dim); background: var(--node-bg);
+    color: var(--text-leaf); font: 500 13px/1 var(--font-mono);
+    padding: 10px 16px; cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+.tool.on, .tool:hover { border-color: var(--accent-bright); color: var(--accent-bright); }
+
+.map-board {
+    position: absolute; left: 0; top: 112px; right: 0; bottom: 0;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+.map-board.is-panning { cursor: grabbing; }
+.map-board svg { max-width: none; max-height: none; }
+#mapCanvas {
+    position: absolute;
+    left: 0; top: 0;
+    min-width: 100%;
+    min-height: 100%;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+#wires {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none; overflow: visible;
+}
+.cols {
+    position: absolute; left: 48px; top: 20px;
+    display: flex; flex-direction: row; gap: var(--col-gap); align-items: flex-start;
+    width: max-content;
+    min-width: calc(100% - 96px);
+    height: auto;
+    overflow: visible;
+}
+.cols.ttb {
+    flex-direction: column; gap: 20px;
+    width: calc(100% - 96px);
+}
+.col {
+    flex: 1 0 auto; min-width: 280px; min-height: auto;
+    display: none; flex-direction: column; gap: 12px;
+    opacity: 0; pointer-events: none;
+    transform: translateX(-28px);
+    transition: opacity 0.4s var(--ease-out-expo), transform 0.4s var(--ease-out-expo);
+    overflow: visible;
+}
+.col.show {
+    display: flex; opacity: 1; pointer-events: auto; transform: none;
+}
+#col0.show { flex: 0 0 320px; min-width: 320px; max-width: 320px; }
+#col1.show { min-width: 340px; max-width: 380px; }
+#col2.show { min-width: 360px; max-width: 420px; }
+#col3.show { min-width: 560px; max-width: 640px; }
+.cols.ttb #col0.show { flex: 0 0 auto; width: min(440px, 100%); min-width: 0; max-width: none; }
+.cols.ttb .col {
+    transform: translateY(-18px);
+    flex-direction: row; flex-wrap: wrap; align-content: flex-start;
+    max-height: none;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+}
+.cols.ttb .col.show { transform: none; }
+.col-label {
+    font-family: var(--font-mono);
+    font-size: var(--fs-label); font-weight: 500;
+    letter-spacing: 0.08em; color: var(--accent-bright);
+    text-transform: none; height: auto; min-height: 22px; flex: 0 0 auto;
+    opacity: 0.9; line-height: 1.4; margin-bottom: 2px;
+}
+.node {
+    border: 1px solid var(--accent-dim);
+    background: var(--node-bg);
+    color: var(--text-leaf);
+    font-family: var(--font-body);
+    font-size: var(--fs-topic); font-weight: 500; line-height: 1.48;
+    padding: 12px 16px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    transition: opacity 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    word-break: break-word;
+}
+.col.show .node:not(.active):not(.root-node) { opacity: var(--node-inactive-opacity); }
+.cols.ttb .node { width: auto; min-width: 220px; max-width: 380px; }
+.node:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px var(--accent-glow);
+    opacity: 0.92;
+}
+.node.active {
+    opacity: 1;
+    background: var(--node-active);
+    border-color: var(--accent-bright);
+    color: #f0fdf4;
+    font-weight: 600;
+    box-shadow: 0 0 24px var(--accent-glow), inset 0 0 0 1px rgba(134, 239, 172, 0.12);
+}
+.node.root-node {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: var(--fs-root); line-height: 1.35;
+    padding: 28px 22px; text-align: center; min-height: 132px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    letter-spacing: -0.01em;
+}
+#list1 .node {
+    font-size: var(--fs-chapter); font-weight: 600; line-height: 1.45;
+    padding: 11px 34px 11px 14px;
+}
+#list1 {
+    max-height: 820px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-dim) transparent;
+}
+.node .sub {
+    margin-top: 8px;
+    font-family: var(--font-body);
+    font-size: 13px; color: var(--text-muted); font-weight: 400; line-height: 1.45;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+#list1 .sub { display: none; }
+#list1 .node {
+    font-size: var(--fs-chapter); font-weight: 600; line-height: 1.42;
+    padding: 12px 36px 12px 14px;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+#list2 .node {
+    font-size: var(--fs-topic); font-weight: 500; line-height: 1.45;
+    padding: 11px 32px 11px 14px;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+#list3 .node {
+    font-size: var(--fs-term); font-weight: 400; line-height: 1.42;
+    padding: 10px 14px;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+.node.has-kids::after {
+    content: "▸";
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-bright); font-size: 12px;
+    font-family: var(--font-mono);
+}
+.cols.ttb .node.has-kids::after { content: "▾"; top: 12px; transform: none; }
+.node, .pager, .detail, .tool { cursor: pointer; }
+.list {
+    display: flex; flex-direction: column; gap: var(--node-gap);
+    flex: 0 0 auto; min-height: auto; overflow: visible;
+}
+.cols.ttb .list { flex-direction: row; flex-wrap: wrap; width: 100%; gap: 12px; }
+.l3-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--node-gap);
+}
+.cols.ttb .l3-grid { grid-template-columns: repeat(4, 1fr); width: 100%; gap: 12px; }
+.detail {
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    background: rgba(15, 42, 24, 0.72);
+    padding: 20px 22px;
+    min-height: 148px;
+    max-width: 100%;
+}
+.detail h3 {
+    font-family: var(--font-display);
+    font-size: var(--fs-detail-title); font-weight: 800;
+    line-height: 1.32; margin-bottom: 12px;
+    color: var(--accent-bright);
+}
+.detail p {
+    font-family: var(--font-body);
+    font-size: var(--fs-detail-body); font-weight: 400;
+    line-height: 1.75; color: var(--text-leaf);
+}
+.pager {
+    display: flex; gap: 10px; align-items: center;
+    font-family: var(--font-mono);
+    font-size: 12px; color: var(--text-muted);
+}
+
+.deck-controls {
+    display: flex; gap: 10px; align-items: center;
+    font-family: var(--font-mono); font-size: 13px; color: var(--accent-bright);
+    background: rgba(7,11,16,.85); border: 1px solid var(--accent-dim); padding: 10px 16px;
+}
+.deck-controls button {
+    background: transparent; border: 1px solid var(--accent-dim); color: var(--text-leaf);
+    padding: 5px 12px; cursor: pointer; font: 500 13px var(--font-mono);
+}
+
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle {
+    position: fixed; top: 16px; left: 16px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    z-index: 10001; border: 1px solid var(--accent); background: #04110a;
+    color: var(--accent); padding: 8px 12px; font: 500 13px var(--font-body); cursor: pointer;
+}
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+body.editing [contenteditable] { outline: 1px dashed var(--accent); }
+</style>
+</head>
+<body>
+<div class="edit-hotzone" id="editHotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Edit mode (E)">编辑</button>
+
+<div class="deck-viewport">
+  <main class="deck-stage" id="deckStage">
+
+    <!-- SLIDE 0: TITLE -->
+    <section class="slide title-slide active" data-slide="0">
+      <div class="glow"></div>
+      <div class="title-kicker reveal">EDGE LLM · MIND MAP</div>
+      <h1 class="reveal">端侧大模型部署</h1>
+      <p class="title-lead reveal">循序渐进：先认端侧，再入门上板，后立尺子、再平台与交付。根节点从左到右：〇 → ⑫ → ② → … → ⑮。</p>
+      <button class="enter-btn reveal" id="enterMap" type="button">点击进入地图 →</button>
+      <div class="title-hint reveal">空格 / → 也可进入　R 复位树　0 复位视图　L 切换方向</div>
+    </section>
+
+    <!-- SLIDE 1: MAP -->
+    <section class="slide" data-slide="1" id="mapSlide">
+      <div class="map-top">
+        <h2>知识树</h2>
+        <div class="crumb" id="crumb">根节点</div>
+        <button class="tool on" id="btnLtr" type="button">从左到右</button>
+        <button class="tool" id="btnTtb" type="button">从上到下</button>
+        <button class="tool" id="btnReset" type="button">复位 0</button>
+        <button class="tool" id="btnView" type="button" title="快捷键 0，或双击空白">复位视图</button>
+      </div>
+      <div class="map-hint">拖拽空白平移 · 滚轮缩放 · 点击节点从左到右展开</div>
+      <div class="map-board" id="mapBoard">
+        <div id="mapCanvas">
+        <svg id="wires" viewBox="0 0 1920 988" preserveAspectRatio="none"></svg>
+        <div class="cols" id="cols">
+          <div class="col show" id="col0">
+            <div class="col-label">0 · 根</div>
+            <button class="node root-node has-kids" id="rootNode" type="button" data-id="root" data-depth="0">端侧大模型部署<span class="sub">点击展开 〇→⑫→②…→⑮</span></button>
+          </div>
+          <div class="col" id="col1"><div class="col-label">1 · 章</div><div class="list" id="list1"></div></div>
+          <div class="col" id="col2"><div class="col-label">2 · 主题</div><div class="list" id="list2"></div></div>
+          <div class="col" id="col3">
+            <div class="col-label">n · 术语</div>
+            <div class="l3-grid" id="list3"></div>
+            <div class="pager" id="pager"></div>
+            <div class="detail" id="detail">
+              <h3>尚未选择术语</h3>
+              <p>先点根节点，再点一章、一个主题，最后点术语查看要点。</p>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<nav class="deck-controls" aria-label="slides">
+  <button type="button" id="prevSlide">←</button>
+  <span id="pageLabel">1 / 2</span>
+  <button type="button" id="nextSlide">→</button>
+</nav>
+
+<script>
+/* === TREE DATA === */
+const TREE = __TREE__;
+
+/* === SLIDE CONTROLLER === */
+class SlidePresentation {
+    constructor() {
+        this.slides = document.querySelectorAll(".slide");
+        this.currentSlide = 0;
+        this.stage = document.getElementById("deckStage");
+        this.setupStageScale();
+        this.setupKeyboardNav();
+        this.setupTouchNav();
+        this.showSlide(0);
+        document.getElementById("prevSlide").onclick = () => this.showSlide(this.currentSlide - 1);
+        document.getElementById("nextSlide").onclick = () => this.showSlide(this.currentSlide + 1);
+        document.getElementById("enterMap").onclick = () => this.showSlide(1);
+    }
+    setupStageScale() {
+        const scale = () => {
+            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            const x = (window.innerWidth - 1920 * factor) / 2;
+            const y = (window.innerHeight - 1080 * factor) / 2;
+            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+        };
+        scale();
+        window.addEventListener("resize", scale);
+    }
+    setupKeyboardNav() {
+        document.addEventListener("keydown", (e) => {
+            if (e.target && (e.target.isContentEditable || ["INPUT","TEXTAREA"].includes(e.target.tagName))) return;
+            if (e.key === "e" || e.key === "E") return;
+            if (this.currentSlide === 1 && ["ArrowUp","ArrowDown","l","L","r","R","0"].includes(e.key)) return;
+            if (["ArrowRight"," ","PageDown"].includes(e.key)) { e.preventDefault(); this.showSlide(this.currentSlide + 1); }
+            if (["ArrowLeft","PageUp"].includes(e.key)) { e.preventDefault(); this.showSlide(this.currentSlide - 1); }
+        });
+    }
+    setupTouchNav() {
+        let x0 = null;
+        this.stage.addEventListener("touchstart", (e) => { x0 = e.changedTouches[0].screenX; }, {passive:true});
+        this.stage.addEventListener("touchend", (e) => {
+            if (this.currentSlide === 1) { x0 = null; return; }
+            if (x0 == null) return;
+            const dx = e.changedTouches[0].screenX - x0;
+            if (dx < -60) this.showSlide(this.currentSlide + 1);
+            if (dx > 60) this.showSlide(this.currentSlide - 1);
+            x0 = null;
+        });
+        this.stage.addEventListener("wheel", (e) => {
+            if (this.currentSlide === 1) return;
+            if (Math.abs(e.deltaY) < 30) return;
+            e.preventDefault();
+            this.showSlide(this.currentSlide + (e.deltaY > 0 ? 1 : -1));
+        }, {passive:false});
+    }
+    showSlide(index) {
+        this.currentSlide = Math.max(0, Math.min(index, this.slides.length - 1));
+        this.slides.forEach((slide, i) => {
+            slide.classList.toggle("active", i === this.currentSlide);
+            slide.classList.toggle("visible", i === this.currentSlide);
+        });
+        document.getElementById("pageLabel").textContent = `${this.currentSlide + 1} / ${this.slides.length}`;
+        if (this.currentSlide === 1) requestAnimationFrame(() => {
+            MapApp.syncCanvasSize();
+            MapApp.drawWires();
+        });
+    }
+}
+
+/* === MIND MAP === */
+const MapApp = {
+    open: false,
+    path: [],
+    layout: "ltr",
+    l3Page: 0,
+    pageSize: 10,
+    view: { x: 0, y: 0, scale: 1 },
+    minScale: 0.65,
+    maxScale: 2,
+    drag: null,
+    suppressClick: false,
+    init() {
+        document.getElementById("rootNode").onclick = () => this.toggleRoot();
+        document.getElementById("btnReset").onclick = () => this.reset();
+        document.getElementById("btnView").onclick = () => this.resetView();
+        document.getElementById("btnLtr").onclick = () => this.setLayout("ltr");
+        document.getElementById("btnTtb").onclick = () => this.setLayout("ttb");
+        this.bindViewport();
+        this.applyTransform();
+        document.addEventListener("keydown", (e) => {
+            if (deck.currentSlide !== 1) return;
+            if (e.target && (e.target.isContentEditable || ["INPUT","TEXTAREA"].includes(e.target.tagName))) return;
+            if (e.key === "r" || e.key === "R") this.reset();
+            if (e.key === "l" || e.key === "L") this.setLayout(this.layout === "ltr" ? "ttb" : "ltr");
+            if (e.key === "0") { e.preventDefault(); this.resetView(); }
+        });
+        window.addEventListener("resize", () => {
+            this.syncCanvasSize();
+            this.drawWires();
+        });
+    },
+    boardScale() {
+        const board = document.getElementById("mapBoard");
+        const r = board.getBoundingClientRect();
+        return r.width / (board.clientWidth || 1920) || 1;
+    },
+    applyTransform() {
+        const el = document.getElementById("mapCanvas");
+        el.style.transform = `translate(${this.view.x}px, ${this.view.y}px) scale(${this.view.scale})`;
+    },
+    resetView() {
+        this.view = { x: 0, y: 0, scale: 1 };
+        this.applyTransform();
+        this.drawWires();
+    },
+    syncCanvasSize() {
+        const board = document.getElementById("mapBoard");
+        const canvas = document.getElementById("mapCanvas");
+        const cols = document.getElementById("cols");
+        const svg = document.getElementById("wires");
+        if (!board || !canvas || !cols || !svg) return;
+        const cw = Math.max(board.clientWidth, Math.ceil(cols.scrollWidth + 80));
+        const ch = Math.max(board.clientHeight, Math.ceil(cols.scrollHeight + 48));
+        canvas.style.width = cw + "px";
+        canvas.style.height = ch + "px";
+        svg.setAttribute("viewBox", `0 0 ${cw} ${ch}`);
+        svg.setAttribute("width", String(cw));
+        svg.setAttribute("height", String(ch));
+    },
+    bindViewport() {
+        const board = document.getElementById("mapBoard");
+        const DRAG_TH = 5;
+        board.addEventListener("pointerdown", (e) => {
+            if (e.pointerType === "mouse" && e.button !== 0) return;
+            if (document.body.classList.contains("editing") && e.target.closest && e.target.closest("[contenteditable='true']")) return;
+            this.drag = {
+                id: e.pointerId,
+                x: e.clientX,
+                y: e.clientY,
+                vx: this.view.x,
+                vy: this.view.y,
+                moved: false
+            };
+        });
+        board.addEventListener("pointermove", (e) => {
+            if (!this.drag || e.pointerId !== this.drag.id) return;
+            const dxScreen = e.clientX - this.drag.x;
+            const dyScreen = e.clientY - this.drag.y;
+            if (!this.drag.moved && Math.hypot(dxScreen, dyScreen) > DRAG_TH) {
+                this.drag.moved = true;
+                board.classList.add("is-panning");
+                try { board.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+            if (this.drag.moved) {
+                const s = this.boardScale();
+                this.view.x = this.drag.vx + dxScreen / s;
+                this.view.y = this.drag.vy + dyScreen / s;
+                this.applyTransform();
+            }
+        });
+        const endDrag = (e) => {
+            if (!this.drag || e.pointerId !== this.drag.id) return;
+            if (this.drag.moved) this.suppressClick = true;
+            this.drag = null;
+            board.classList.remove("is-panning");
+        };
+        board.addEventListener("pointerup", endDrag);
+        board.addEventListener("pointercancel", endDrag);
+        board.addEventListener("click", (e) => {
+            if (!this.suppressClick) return;
+            e.preventDefault();
+            e.stopPropagation();
+            this.suppressClick = false;
+        }, true);
+        board.addEventListener("dblclick", (e) => {
+            if (e.target.closest && e.target.closest("button, .node, .pager, .detail, a")) return;
+            this.resetView();
+        });
+        board.addEventListener("wheel", (e) => {
+            e.preventDefault();
+            const s = this.boardScale();
+            const r = board.getBoundingClientRect();
+            const mx = (e.clientX - r.left) / s;
+            const my = (e.clientY - r.top) / s;
+            const old = this.view.scale;
+            const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+            const next = Math.min(this.maxScale, Math.max(this.minScale, old * factor));
+            if (next === old) return;
+            const cx = (mx - this.view.x) / old;
+            const cy = (my - this.view.y) / old;
+            this.view.scale = next;
+            this.view.x = mx - cx * next;
+            this.view.y = my - cy * next;
+            this.applyTransform();
+        }, { passive: false });
+    },
+    find(id, node = TREE) {
+        if (node.id === id) return node;
+        for (const k of node.kids || []) {
+            const f = this.find(id, k);
+            if (f) return f;
+        }
+        return null;
+    },
+    toggleRoot() {
+        this.open = !this.open;
+        if (!this.open) this.path = [];
+        this.l3Page = 0;
+        this.render();
+    },
+    reset() {
+        this.open = false;
+        this.path = [];
+        this.l3Page = 0;
+        this.resetView();
+        this.render();
+    },
+    setLayout(mode) {
+        this.layout = mode;
+        document.getElementById("cols").classList.toggle("ttb", mode === "ttb");
+        document.getElementById("btnLtr").classList.toggle("on", mode === "ltr");
+        document.getElementById("btnTtb").classList.toggle("on", mode === "ttb");
+        this.render();
+    },
+    pick(depth, id) {
+        if (depth === 1) this.path = this.path[0] === id ? [] : [id];
+        if (depth === 2) this.path = this.path[1] === id ? [this.path[0]] : [this.path[0], id];
+        if (depth === 3) this.path = [this.path[0], this.path[1], id];
+        this.l3Page = 0;
+        this.render();
+    },
+    fillList(el, nodes, depth, activeId, twoCol) {
+        el.innerHTML = "";
+        if (twoCol) el.className = "l3-grid";
+        nodes.forEach((n, i) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "node" + (n.kids && n.kids.length ? " has-kids" : "") + (n.id === activeId ? " active" : "");
+            b.dataset.id = n.id;
+            b.style.transitionDelay = `${Math.min(i, 12) * 0.03}s`;
+            const sub = n.d && depth < 3 ? `<span class="sub">${esc(n.d)}</span>` : "";
+            b.innerHTML = `${esc(n.t)}${depth === 3 && n.d ? `<span class="sub">${esc(n.d)}</span>` : (depth < 3 ? sub : "")}`;
+            b.onclick = () => this.pick(depth, n.id);
+            el.appendChild(b);
+        });
+    },
+    render() {
+        const col1 = document.getElementById("col1");
+        const col2 = document.getElementById("col2");
+        const col3 = document.getElementById("col3");
+        const list1 = document.getElementById("list1");
+        const list2 = document.getElementById("list2");
+        const list3 = document.getElementById("list3");
+        const rootBtn = document.getElementById("rootNode");
+        rootBtn.classList.toggle("active", this.open);
+
+        col1.classList.toggle("show", this.open);
+        if (this.open) this.fillList(list1, TREE.kids, 1, this.path[0]);
+
+        const l1 = this.path[0] ? this.find(this.path[0]) : null;
+        col2.classList.toggle("show", !!(l1 && l1.kids && l1.kids.length));
+        if (l1) this.fillList(list2, l1.kids, 2, this.path[1]);
+
+        const l2 = this.path[1] ? this.find(this.path[1]) : null;
+        const leaves = l2 && l2.kids ? l2.kids : [];
+        col3.classList.toggle("show", !!l2);
+        const start = this.l3Page * this.pageSize;
+        const page = leaves.slice(start, start + this.pageSize);
+        this.fillList(list3, page, 3, this.path[2], true);
+
+        const pager = document.getElementById("pager");
+        const pages = Math.max(1, Math.ceil(leaves.length / this.pageSize));
+        pager.innerHTML = "";
+        if (leaves.length > this.pageSize) {
+            const prev = document.createElement("button");
+            prev.className = "tool"; prev.textContent = "上页";
+            prev.onclick = () => { this.l3Page = Math.max(0, this.l3Page - 1); this.render(); };
+            const next = document.createElement("button");
+            next.className = "tool"; next.textContent = "下页";
+            next.onclick = () => { this.l3Page = Math.min(pages - 1, this.l3Page + 1); this.render(); };
+            pager.append(prev, document.createTextNode(` ${this.l3Page + 1}/${pages} `), next);
+        }
+
+        const leaf = this.path[2] ? this.find(this.path[2]) : null;
+        const detail = document.getElementById("detail");
+        if (leaf) {
+            detail.innerHTML = `<h3>${esc(leaf.t)}</h3><p>${esc(leaf.d || "（无展开说明）")}</p>`;
+        } else if (l2) {
+            detail.innerHTML = `<h3>${esc(l2.t)}</h3><p>${esc(l2.d || "继续点击右侧术语。")} · ${leaves.length} 条</p>`;
+        } else {
+            detail.innerHTML = `<h3>尚未选择术语</h3><p>先点根节点，再点一章、一个主题，最后点术语查看要点。</p>`;
+        }
+
+        const parts = ["根"];
+        if (l1) parts.push(l1.t);
+        if (l2) parts.push(l2.t);
+        if (leaf) parts.push(leaf.t);
+        document.getElementById("crumb").textContent = parts.join("  /  ");
+
+        requestAnimationFrame(() => {
+            this.syncCanvasSize();
+            this.drawWires();
+        });
+    },
+    drawWires() {
+        const svg = document.getElementById("wires");
+        svg.innerHTML = "";
+        if (!this.open) return;
+        const board = svg.getBoundingClientRect();
+        const vbW = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || board.width || 1920;
+        const scale = board.width / vbW || 1;
+        const pairs = [];
+        const root = document.getElementById("rootNode");
+        const l1s = [...document.querySelectorAll("#list1 .node")];
+        const l2s = [...document.querySelectorAll("#list2 .node")];
+        const l3s = [...document.querySelectorAll("#list3 .node")];
+        const activeL1 = document.querySelector("#list1 .node.active") || l1s[0];
+        const activeL2 = document.querySelector("#list2 .node.active") || l2s[0];
+        if (this.layout === "ltr") {
+            l1s.forEach((n) => pairs.push([root, n]));
+            if (activeL1) l2s.forEach((n) => pairs.push([activeL1, n]));
+            if (activeL2) l3s.forEach((n) => pairs.push([activeL2, n]));
+        } else {
+            l1s.forEach((n) => pairs.push([root, n]));
+            if (activeL1) l2s.forEach((n) => pairs.push([activeL1, n]));
+            if (activeL2) l3s.forEach((n) => pairs.push([activeL2, n]));
+        }
+        pairs.forEach(([a, b]) => {
+            if (!a || !b) return;
+            const ra = a.getBoundingClientRect();
+            const rb = b.getBoundingClientRect();
+            let x1, y1, x2, y2;
+            if (this.layout === "ltr") {
+                x1 = (ra.right - board.left) / scale;
+                y1 = (ra.top + ra.height / 2 - board.top) / scale;
+                x2 = (rb.left - board.left) / scale;
+                y2 = (rb.top + rb.height / 2 - board.top) / scale;
+            } else {
+                x1 = (ra.left + ra.width / 2 - board.left) / scale;
+                y1 = (ra.bottom - board.top) / scale;
+                x2 = (rb.left + rb.width / 2 - board.left) / scale;
+                y2 = (rb.top - board.top) / scale;
+            }
+            const mx = (x1 + x2) / 2;
+            const my = (y1 + y2) / 2;
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", this.layout === "ltr"
+                ? `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`
+                : `M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", "rgba(34,197,94,.35)");
+            path.setAttribute("stroke-width", "1.2");
+            svg.appendChild(path);
+        });
+    }
+};
+
+function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[c]));
+}
+
+/* === INLINE EDIT === */
+(function () {
+    const hot = document.getElementById("editHotzone");
+    const btn = document.getElementById("editToggle");
+    let hideT, editing = false;
+    const show = () => { clearTimeout(hideT); btn.classList.add("show"); };
+    const hide = () => { hideT = setTimeout(() => { if (!editing) btn.classList.remove("show"); }, 400); };
+    hot.addEventListener("mouseenter", show);
+    hot.addEventListener("mouseleave", hide);
+    btn.addEventListener("mouseenter", show);
+    btn.addEventListener("mouseleave", hide);
+    const apply = () => {
+        document.body.classList.toggle("editing", editing);
+        btn.classList.toggle("active", editing);
+        document.querySelectorAll(".node, .detail, h1, h2, .title-lead").forEach((el) => {
+            el.contentEditable = editing ? "true" : "false";
+        });
+        if (editing) localStorage.setItem("edge-map-edit", "1");
+    };
+    btn.onclick = () => { editing = !editing; apply(); };
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "e" || e.key === "E") {
+            if (e.target && (e.target.tagName === "INPUT" || e.target.isContentEditable) && !document.body.classList.contains("editing")) return;
+            if (e.target && e.target.closest && e.target.closest(".node") && editing) return;
+            editing = !editing; apply();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+            e.preventDefault();
+            const blob = new Blob([document.documentElement.outerHTML], {type:"text/html"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "端侧部署思维导图.html";
+            a.click();
+        }
+    });
+})();
+
+const deck = new SlidePresentation();
+MapApp.init();
+</script>
+</body>
+</html>

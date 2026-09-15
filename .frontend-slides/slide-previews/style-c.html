@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>端侧部署 · 预览</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap" rel="stylesheet" />
+<style>
+  html,body{margin:0;height:100%;background:#0c1220;overflow:hidden}
+  .deck-viewport{position:fixed;inset:0}
+  .deck-stage{position:absolute;width:1920px;height:1080px;transform-origin:0 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 15% 20%, rgba(37,99,235,.35), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 85% 80%, rgba(14,165,233,.18), transparent 50%),
+      linear-gradient(160deg,#0b1220 0%,#111b2e 45%,#0a101c 100%)}
+  .slide{position:absolute;inset:0;color:#eef3ff;font-family:"Instrument Sans",sans-serif}
+  .bar{position:absolute;left:0;top:0;bottom:0;width:14px;background:#2563eb}
+  .kicker{position:absolute;left:90px;top:72px;font-size:16px;letter-spacing:.28em;text-transform:uppercase;color:#93c5fd}
+  h1{position:absolute;left:90px;top:130px;margin:0;font-family:Newsreader,serif;font-size:78px;font-weight:700;line-height:1.08;max-width:1100px}
+  .sub{position:absolute;left:90px;top:360px;max-width:760px;font-size:24px;line-height:1.5;color:#b6c4de}
+  .map{position:absolute;left:90px;right:90px;bottom:90px;display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:20px}
+  .col{background:rgba(255,255,255,.04);border:1px solid rgba(147,197,253,.22);padding:28px 24px;min-height:280px;backdrop-filter:blur(6px)}
+  .col h3{margin:0 0 16px;font-family:Newsreader,serif;font-size:28px;font-weight:700;color:#fff}
+  .col ul{margin:0;padding:0;list-style:none}
+  .col li{font-size:17px;color:#c5d4ea;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .col li:last-child{border:0}
+  .badge{position:absolute;right:90px;top:72px;padding:10px 18px;border:1px solid #3b82f6;color:#93c5fd;font-size:14px;letter-spacing:.16em}
+</style>
+</head>
+<body>
+<div class="deck-viewport"><div class="deck-stage" id="stage">
+  <section class="slide">
+    <div class="bar"></div>
+    <div class="kicker">Edge Deployment Atlas</div>
+    <div class="badge">① → ⑯</div>
+    <h1>端侧大模型部署<br/>思维导图</h1>
+    <p class="sub">教学讲解用完整三级地图：底座、量化、性能、平台、量产与编译器一屏可导航。</p>
+    <div class="map">
+      <div class="col"><h3>主干</h3><ul><li>① 前置底座</li><li>② 部署主链路</li><li>③ 量化与压缩</li><li>④ 推理性能</li></ul></div>
+      <div class="col"><h3>平台</h3><ul><li>⑤ 工具链入门</li><li>⑩ 昇腾/麒麟</li><li>⑭ 跨厂商选型</li></ul></div>
+      <div class="col"><h3>进阶</h3><ul><li>⑬ LLM/VLM 补全</li><li>⑯ AI 编译器</li><li>⑨ Transformer/VLM</li></ul></div>
+      <div class="col"><h3>量产</h3><ul><li>⑥ 工程化</li><li>⑪ 落地流程</li><li>⑮ 门禁/车规/OTA</li></ul></div>
+    </div>
+  </section>
+</div></div>
+<script>
+(function(){const s=document.getElementById('stage');function fit(){const sc=Math.min(innerWidth/1920,innerHeight/1080);s.style.transform=`translate(${(innerWidth-1920*sc)/2}px,${(innerHeight-1080*sc)/2}px) scale(${sc})`;}fit();addEventListener('resize',fit);})();
+</script>
+</body>
+</html>
