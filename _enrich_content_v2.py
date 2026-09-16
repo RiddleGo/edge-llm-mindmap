@@ -722,15 +722,15 @@ def enrich_l1_placeholder() -> None:
 
 def inject(path: Path, payload: str) -> None:
     html = path.read_text(encoding="utf-8")
-    start = html.find("const TREE = ")
-    if start < 0:
-        # try TREE
-        for marker in ("const TREE = ", "const TREE="):
-            start = html.find(marker)
-            if start >= 0:
-                break
-    if start < 0:
+    # Prefer TREE_MAIN when dual-tab is present; keep TREE_JD intact
+    marker = None
+    for cand in ("const TREE_MAIN = ", "const TREE = ", "const TREE="):
+        if cand in html:
+            marker = cand
+            break
+    if marker is None:
         raise SystemExit("TREE not found")
+    start = html.find(marker)
     eq = html.find("=", start)
     i = eq + 1
     while i < len(html) and html[i] in " \n\r\t":
@@ -766,7 +766,8 @@ def inject(path: Path, payload: str) -> None:
         k += 1
     if k < len(html) and html[k] == ";":
         k += 1
-    new_html = html[:start] + "const TREE = " + payload + ";" + html[k:]
+    decl = "const TREE_MAIN = " if "TREE_MAIN" in marker else "const TREE = "
+    new_html = html[:start] + decl + payload + ";" + html[k:]
     # soft UI copy tweaks
     new_html = new_html.replace(
         "是什么 / 作用 / 承接",
