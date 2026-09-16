@@ -1,5 +1,5 @@
 # 端侧大模型部署 · 知识树
 
-**在线打开（网页）：** https://riddlogo.github.io/edge-llm-mindmap/
+**在线打开（网页）：** https://riddlego.github.io/edge-llm-mindmap/
 
 左侧点目录，右侧读讲义：是什么、起什么作用。主题层会补一句这段在部署链路里接哪一环，不再罗列前后目录名。

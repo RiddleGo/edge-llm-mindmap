@@ -74,15 +74,23 @@ for raw in text.splitlines():
         continue
     if not cur2:
         if line and not line.startswith(("#", "|", ">", "-", "*")) and not cur1["d"]:
-            cur1["d"] = short(line, 70)
+            cur1["d"] = short(line, 120)
         continue
+    # First prose paragraph after ### becomes L2 "是什么" seed (longer for 〇 thick sections)
+    if line and not line.startswith(("#", "|", ">", "-", "*")) and not cur2.get("d"):
+        cur2["d"] = short(line, 160)
+        # also continue to allow bold-lead lines below to become L3
     tm = term_re.match(line)
     if tm:
         add_l3(tm.group(1), tm.group(2)); continue
+    # Bold lead without list marker: **是什么** — ...
+    bm = re.match(r"^\*\*(.+?)\*\*\s*[—–:：]\s*(.+)$", line)
+    if bm:
+        add_l3(bm.group(1), bm.group(2)); continue
     if line.startswith("- "):
         body = line[2:].strip()
         body = re.sub(r"^\*\*(.+?)\*\*\s*", r"\1 ", body)
-        add_l3(body[:26], body)
+        add_l3(body[:40], body)
 
 for c in tree["kids"]:
     c["kids"] = [s for s in c["kids"] if s["t"]]

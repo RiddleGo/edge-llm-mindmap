@@ -17,6 +17,33 @@ NUM = re.compile(r"^\d+(?:\.\d+)*\s*[·.\s、\-–—]+\s*")
 
 # concept-specific teaching blurbs keyed by substring in stripped title
 CONCEPTS: list[tuple[tuple[str, ...], str, str]] = [
+    (("端侧", "on-device", "设备本体"),
+     "数据产生/消费处的终端或嵌入式节点上的推理：权重进本机 DRAM，默认不依赖跨城回程。杀进程、温控、前台保活都是硬约束。本仓库「端侧」专指这一层，勿与近边/MEC 混称。",
+     "认清落点才能选验收尺：端侧看本机峰值与离线，不看云端 Demo 延迟。"),
+    (("近边", "mec", "access-edge"),
+     "接入网边缘的虚拟化宿主（MEC host）：基站旁/园区 PoP 上的算力与编排。时延与主权跟运营商/园区域走，不是手机里的 NPU。",
+     "部署图要把近边与端侧分开画：RTT、编排主权、失败回落写清，才不会把 MEC 当手机。"),
+    (("信任边界",),
+     "谁持钥、谁编排、谁审计、故障归谁。物理共址不等于同一信任域：MEC 与 Edge Cloud 可同机房不同域。",
+     "评审翻车常因 PPT 只画「边缘」说不清主权；部署图强制三列——算力归属/数据驻留/编排主权。"),
+    (("访存墙", "带宽墙", "memory-bound"),
+     "端侧 LLM decode 多为 batch≈1：每 token 重读常驻权重与 KV，算术强度极低，瓶颈在搬字节而非宣传 TOPS。",
+     "对话跟手先问有效带宽与 bytes/token，再谈 NPU TOPS；Prefill 与 Decode 必须分表。"),
+    (("数据最小化",),
+     "只处理目的所必要的数据：少采、少存、少传、少副本。端侧减少外传是手段之一，不等于自动合规。",
+     "数据流图要标原始/特征/日志/遥测四级；「本地模型」挡不住全量日志回传的拒收。"),
+    (("能加载", "容量门"),
+     "四级台阶第一道：权重进设备、能出首帧，且峰值内存低于可用 DRAM。格式对 ≠ 能交付。",
+     "OOM 比慢更致命；装不进就不要往下谈量化与加速。"),
+    (("能量化", "塞入"),
+     "四级台阶第二道：INT4/W4A16 等路径跑通，体积进预算，业务掉点与速度同表验收。",
+     "塞进去但不能用等于没交付；无校准指纹的量化包当场拒收。"),
+    (("可复现", "指纹门"),
+     "四级台阶第三道：同一 SoC/引擎版本/导出指纹下，转换→Runtime→Profiling 可复跑，算子落点可审计。",
+     "演示 APK 与「我机器上可以」过不了量产；静默 CPU fallback 不算加速。"),
+    (("交付门禁",),
+     "四级台阶第四道：共板、温区 sustained、OTA 可回滚、崩溃/OOM 率可追溯。演示绿 ≠ 门禁绿。",
+     "空调房峰值挡不住座舱投诉；验收看 P95 与热稳态。"),
     (("精度位宽", "位宽"),
      "用多少比特存一个数：FP16 / INT8 / INT4 等。位宽越低越省内存和带宽，精度也更容易掉。选档要对齐芯片原生算子和业务验收线，别只看体积。",
      "这是端侧「塞不塞得下」的第一扳手：位宽定了，后面的 scale、校准、性能账才有意义。"),
@@ -126,10 +153,19 @@ def unwrap_template(title: str, d: str) -> str:
 
 def match_concept(title: str) -> tuple[str, str] | None:
     tl = strip_num(title).lower()
+    # Prefer longest key hit so "端 · 近边 · 云" does not steal the short "近边" gloss
+    best: tuple[str, str] | None = None
+    best_len = -1
     for keys, d, w in CONCEPTS:
-        if any(k.lower() in tl for k in keys):
-            return d, w
-    return None
+        for k in keys:
+            kl = k.lower()
+            if kl in tl and len(kl) > best_len:
+                best = (d, w)
+                best_len = len(kl)
+    # Compound layer title: keep prose, not a single-layer gloss
+    if "端" in tl and "近边" in tl and "云" in tl:
+        return None
+    return best
 
 
 def _hit(text: str, *keys: str) -> bool:
@@ -176,7 +212,7 @@ def conceptual_bridge(
     # L1 调用时 l1_title 为空；避免章名误撞主题关键词（如「昇腾」）
     if not l1:
         if T("先认端侧"):
-            return "进技术命令之前先认方位：端侧从哪级台阶长来、现场拒收尺、交的是哪种活。方位清了，全栈入门才不是工具堆。"
+            return "进技术命令之前先认方位：端相对近边/云站哪一层、为啥挤上设备、访存墙、四级台阶、场景拒收尺、交哪种活。方位清了，全栈入门才不是工具堆。"
         if T("基础入门") or T("全栈技术"):
             return "方位认完，用一条可跑的全栈把转换、量化、CV/昇腾/LLM 摸一遍。主链路章再把其中转换、引擎、运行时拆开深讲。"
         if T("部署主链路"):
@@ -210,15 +246,67 @@ def conceptual_bridge(
         if T("门禁") and T("OTA"):
             return "流水线能重复，才上门禁、车规、OTA 与安全。演示绿不等于放行绿，这是全书交付收口，不再开新的技术栈。"
 
-    # ----- 连载 / 台阶 / 场景 -----
+    # ----- 连载 / 台阶 / 场景 / 认端侧新节 -----
     if T("连载顺序"):
-        return "先把整本课排成可走的周次，不按编号硬闯。入门、主链路、尺子、平台、交付五周认清，才谈四级台阶从哪一级长出来。"
+        return "先把整本课排成可走的周次，不按编号硬闯。入门、主链路、尺子、平台、交付五周认清，才谈端/边/云边界与四级台阶。"
+    if T("端 · 近边") or T("词钉死"):
+        return "周次有了，先钉术语：端=设备本体，近边=MEC/接入网边缘，云=中心。词钉死，后面「为啥挤上设备」才不会把 MEC 当手机。"
+    if T("信任边界"):
+        return "三层名字钉死后，再分清信任域与机柜：共址≠可控。信任边界清了，协作切分才写得进部署图。"
+    if T("协作面") or T("不是替代"):
+        return "信任域分清后，端边云按任务切分，不是互相替代。切分表有了，才谈为啥要把推理挤上设备。"
+    if T("边界决策四问"):
+        return "协作原则有了，用四问做现场 checklist。问完再进动机章，避免口号式「上边缘」。"
+    if T("为什么要把推理挤上设备"):
+        return "三层边界清了，才谈动机：隐私、延迟、成本、离线。动机落到产业锚点，下一步先深挖时延与可用性。"
+    if T("时延与可用性"):
+        return "动机表看过，先深挖时延：本机测 TTFT/稳态，不抄云 Demo。时延账清了，再谈数据最小化。"
+    if T("数据最小化"):
+        return "时延约束之后谈隐私手段：少传少存。最小化是设计默认，不是「本地=合规」；再看产业产品线如何把模型挤上设备。"
+    if T("可挤上设备") or T("做成产品线"):
+        return "约束讲清后，看 Apple/Phi/Llama 把小模型做成可交付路径。选型表有了，才列「何时不要硬挤」。"
+    if T("何时不要硬挤"):
+        return "能挤的边界认清，再用拒收清单防止硬扛。收束后进访存墙——主矛盾往往在搬而不在算。"
+    if T("访存墙：") or (T("访存墙") and T("主矛盾") and not T("是什么") and not T("怎么量") and not T("误判") and not T("锚点") and not T("为何")):
+        return "何时不硬挤列完，总览访存墙：主矛盾在搬不在算。总览后先定义「是什么」，再拆为何/怎么量。"
+    if T("访存墙是什么"):
+        return "动机收束后，先定义访存墙：batch≈1 decode 每 token 扫权重。定义清了，才讲为何它是端侧主矛盾。"
+    if T("为何访存是主矛盾"):
+        return "定义有了：prefill 吃算力、decode 吃带宽。主矛盾钉死，下一步才谈怎么量，别再用 TOPS 代替 tok/s。"
+    if T("访存墙怎么量"):
+        return "主矛盾认清后立表计：算术强度、有效带宽、稳态 tok/s。量表齐了，再列常见误判当红黄牌。"
+    if T("访存墙常见误判"):
+        return "会量之后对照误判：TOPS≠对话快、能加载≠能交付。误判清了，再用带条件的锚点数字钉课堂。"
+    if T("访存墙锚点") or (T("锚点") and T("条件写死")):
+        return "误判清单之后给锚点：Phi/Orin/骁龙/Tiny，条件写死。锚点只认方位，过门细节进四级台阶。"
     if T("四级台阶"):
-        return "周次只告诉你先学哪段。四级台阶回答端侧能力从哪一级长来，场景才能对上号；台阶认错，后面落地全偏。"
+        return "访存墙提醒你演示≠交付。四级台阶把能力拆成可度量的门；过了哪道门，才谈手机/车机/盒子各用哪把拒收尺。"
+    if T("L1") and T("能加载"):
+        return "总表看过，先过容量门：装得进、不 OOM。L1 过了才谈量化塞入，否则后面全是空转。"
+    if T("L2") and T("能量化"):
+        return "能加载之后压 bit：体积与业务掉点同表验收。L2 过了才谈工具链指纹，别只交演示 APK。"
+    if T("L3") and T("可复现"):
+        return "量化过线后钉指纹：同脚本同版本可复跑。L3 过了才谈长稳与 OTA，演示机不算交付。"
+    if T("L4") and T("交付门禁"):
+        return "指纹齐了才上门禁：P95、热稳态、回滚。L4 过了再按场景选拒收尺，空调房绿表无效。"
     if T("落地场景"):
-        return "台阶认完才谈现场：车上、手机、工控各用哪把拒收尺。场景清楚了，才知道三种活分别交什么，别把演示当交付。"
+        return "台阶认完才谈现场：车上、手机、工控各用哪把拒收尺。场景清楚了，才立现场拒收尺，别把演示当交付。"
+    if T("现场拒收尺"):
+        return "场景定了才立尺：DRAM、TTFT、稳态 tok/s、掉点、温控。尺立住，三种活才知道各自交哪张表。"
+    if T("表 A") or (T("DRAM 峰值") and T("模型体积")):
+        return "五张拒收尺从内存开刀：OOM 比慢更致命。表 A 钉住，再测 TTFT，避免首字体验被内存抖动掩盖。"
+    if T("表 B") or (T("TTFT") and T("Prefill") and T("测什么")):
+        return "内存过线后测首字：TTFT/Prefill。首包合格，再验 decode 稳态，别用一个「最高 tok/s」糊弄。"
+    if T("表 C") or (T("Decode") and T("稳态")):
+        return "首字过后看持续生成与温区。稳态过了，再验量化掉点——快但胡话同样拒收。"
+    if T("表 D") or (T("量化精度掉点") and T("测什么")):
+        return "速度过线必须过精度：业务集与对齐三站。精度立住，最后才验功耗与温控掉速。"
+    if T("表 E") or (T("功耗") and T("温控掉速") and T("测什么")):
+        return "精度过线后验热与电：会话级功耗、结温–频率曲线。五表齐了，再分三种活各交哪张单。"
     if T("三种活", "职业"):
-        return "场景定了才分活：选型、部署、交付不是同一份工。职业切口立住，后面技术章才知道自己在交哪一截。"
+        return "拒收尺立住才分活：交到板上、变轻变快、Runtime/算子不是同一份工。职业切口立住，后面技术章才知道自己在交哪一截。"
+    if T("出处速查"):
+        return "方位、台阶、场景、拒收尺认完，用出处表回查标准与厂商锚点。数字进合同仍以板上 profiler 为准，然后进 ⑫ 动手。"
 
     # ----- CV / 昇腾 / llama.cpp / 引擎栈（用前后文选句） -----
     if T("CV") and T("ONNX", "INT8", "全链路", "PT"):
@@ -595,18 +683,31 @@ def enrich_l2(node: dict, l1_title: str, prev: str | None, nxt: str | None) -> N
     themes = [strip_num(c.get("t") or "") for c in (node.get("kids") or [])]
     themes = [x for x in themes if x][:6]
     cover = "、".join(themes) if themes else "若干子点"
-    # less template, more useful
-    node["d"] = clamp(
-        f"主题「{t}」管端侧链路里这一段，下含：{cover}。"
-        f"先搞清这段的验收标准，再逐个点开知识点，别把目录当正文。",
-        60,
-        180,
-    )
-    node["w"] = clamp(
-        f"给「{strip_num(l1_title)}」一个可讲可练的切口，让下面的知识点有归属。",
-        30,
-        90,
-    )
+    raw = unwrap_template(t, node.get("d") or "")
+    hit = match_concept(t)
+    # Prefer: CONCEPTS → thick prose from md → short fallback (never wipe real content)
+    if hit:
+        node["d"] = clamp(hit[0], 60, 220)
+        node["w"] = clamp(hit[1], 30, 100)
+    elif raw and len(raw) >= 40 and "管端侧链路里这一段" not in raw and "别把目录当正文" not in raw:
+        node["d"] = clamp(raw, 60, 220)
+        node["w"] = clamp(
+            f"把「{t}」落到可验收信号上，再下钻子点；细节以正文段落为准。",
+            30,
+            90,
+        )
+    else:
+        node["d"] = clamp(
+            f"主题「{t}」管端侧链路里这一段，下含：{cover}。"
+            f"先搞清这段的验收标准，再逐个点开知识点，别把目录当正文。",
+            60,
+            180,
+        )
+        node["w"] = clamp(
+            f"给「{strip_num(l1_title)}」一个可讲可练的切口，让下面的知识点有归属。",
+            30,
+            90,
+        )
     node["b"] = clamp(
         conceptual_bridge(t, prev, nxt, strip_num(l1_title), themes),
         40,
