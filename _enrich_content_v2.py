@@ -9,9 +9,12 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
 
-ROOT = Path(r"D:\推理VS训练")
+ROOT = Path(__file__).resolve().parent
 TREE_JSON = ROOT / "mindmap-tree.json"
-HTML = ROOT / "端侧部署思维导图.html"
+HTMLS = [
+    ROOT / "端侧部署思维导图.html",
+    ROOT / "index.html",
+]
 
 NUM = re.compile(r"^\d+(?:\.\d+)*\s*[·.\s、\-–—]+\s*")
 
@@ -25,7 +28,7 @@ CONCEPTS: list[tuple[tuple[str, ...], str, str]] = [
      "部署图要把近边与端侧分开画：RTT、编排主权、失败回落写清，才不会把 MEC 当手机。"),
     (("信任边界",),
      "谁持钥、谁编排、谁审计、故障归谁。物理共址不等于同一信任域：MEC 与 Edge Cloud 可同机房不同域。",
-     "评审翻车常因 PPT 只画「边缘」说不清主权；部署图强制三列——算力归属/数据驻留/编排主权。"),
+     "评审翻车常因 PPT 只画「边缘」说不清主权；部署图建议画三列——算力归属/数据驻留/编排主权。"),
     (("访存墙", "带宽墙", "memory-bound"),
      "端侧 LLM decode 多为 batch≈1：每 token 重读常驻权重与 KV，算术强度极低，瓶颈在搬字节而非宣传 TOPS。",
      "对话跟手先问有效带宽与 bytes/token，再谈 NPU TOPS；Prefill 与 Decode 必须分表。"),
@@ -96,8 +99,8 @@ CONCEPTS: list[tuple[tuple[str, ...], str, str]] = [
      "跨框架中间格式，常作训练框架到推理引擎的交接面。图对不对、算子齐不齐，先在这里验。",
      "转换失败优先查 ONNX：动态 shape、自定义算子、opset 版本。"),
     (("tensorrt",),
-     "面向 NVIDIA GPU 的推理栈：图优化、精度策略、引擎构建。车上/工控 GPU 路径常点名它。",
-     "GPU 端侧选型时，先确认 TRT 版本与目标芯片是否匹配，再谈插件与精度。"),
+     "NVIDIA 推理引擎：解析 ONNX/自定义网络，做层融合、精度校准与 engine 序列化；版本必须对齐驱动与目标 GPU。",
+     "先锁定 TRT 大版本与芯片，再谈 plugin、INT8/FP8 与 engine 缓存是否可复用。"),
     (("qnn", "snpe", "hexagon"),
      "高通侧把模型搬到 Hexagon/NPU 的工具与运行时一环。手机/车机 Qualcomm 方案会反复遇到。",
      "高通板上「能转不能跑」多半卡在 DSP/NPU 算子覆盖与上下文配置。"),
@@ -637,44 +640,45 @@ def enrich_l3(leaf: dict, l2_title: str, l1_title: str, siblings: list[str]) -> 
     t = strip_num(leaf.get("t") or "")
     raw = unwrap_template(t, leaf.get("d") or "")
     hit = match_concept(t)
+
+    # Long markdown prose wins — do not crush tutorial body into slogan templates
+    if raw and len(raw) >= 100:
+        leaf["d"] = clamp(raw, 80, 1200)
+        if hit:
+            leaf["w"] = clamp(hit[1], 24, 100)
+        else:
+            old_w = (leaf.get("w") or "").strip()
+            if old_w and not old_w.startswith("支撑「") and "才有抓手" not in old_w:
+                leaf["w"] = clamp(old_w, 24, 90)
+            else:
+                leaf["w"] = clamp(f"弄清「{t}」，排障和选型时才知道该动哪一环。", 24, 80)
+        leaf["b"] = ""
+        return
+
     if hit:
         d, w = hit
-        # keep unique technical residue from raw if it adds numbers/formulas
         if raw and len(raw) >= 20 and raw not in d:
             if any(ch.isdigit() for ch in raw) or any(x in raw for x in ("×", "=", "→", "INT", "FP", "KV")):
-                d = clamp(d + "（补充：" + raw[:60].rstrip("。") + "。）", 60, 200)
+                d = clamp(d + "（补充：" + raw[:60].rstrip("。") + "。）", 60, 280)
+        leaf["d"] = clamp(d, 60, 280)
+        leaf["w"] = clamp(w, 24, 100)
     else:
         if raw and len(raw) >= 18:
-            d = clamp(f"{t}：{raw}", 50, 180)
+            d = clamp(f"{t}：{raw}" if not raw.startswith(t) else raw, 50, 400)
         else:
             d = clamp(
-                f"{t}：落在「{strip_num(l2_title)}」里的具体点。"
-                f"先弄清它解决哪类问题、验收看什么信号，再去记命令和参数。",
+                f"{t}：承接「{strip_num(l2_title)}」。看它解决什么问题、验收看什么信号。",
                 50,
                 160,
             )
-        # better w from heuristics
-        w = leaf.get("w") or ""
-        if (not w) or w.startswith("支撑「") or "才有抓手" in w:
+        old_w = (leaf.get("w") or "").strip()
+        if old_w and not old_w.startswith("支撑「") and "一锅粥" not in old_w and "才有抓手" not in old_w:
+            w = clamp(old_w, 24, 90)
+        else:
             w = clamp(f"弄清「{t}」，排障和选型时才知道该动哪一环。", 24, 80)
+        leaf["d"] = d
+        leaf["w"] = w
 
-    # clean generic w
-    old_w = (leaf.get("w") or "").strip()
-    if hit:
-        pass  # keep concept w
-    elif old_w and not old_w.startswith("支撑「") and "一锅粥" not in old_w and "才有抓手" not in old_w:
-        w = clamp(old_w, 24, 90)
-    elif not hit:
-        w = clamp(w if "w" in dir() and w else f"服务「{strip_num(l2_title)}」落地，避免只背名词。", 24, 90)
-
-    if hit:
-        leaf["d"] = clamp(d, 60, 200)
-        leaf["w"] = clamp(w, 24, 100)
-    else:
-        leaf["d"] = clamp(d, 50, 180)
-        leaf["w"] = clamp(w, 24, 90)
-
-    # 知识点不再写承上启下
     leaf["b"] = ""
 
 
@@ -685,21 +689,21 @@ def enrich_l2(node: dict, l1_title: str, prev: str | None, nxt: str | None) -> N
     cover = "、".join(themes) if themes else "若干子点"
     raw = unwrap_template(t, node.get("d") or "")
     hit = match_concept(t)
-    # Prefer: CONCEPTS → thick prose from md → short fallback (never wipe real content)
-    if hit:
-        node["d"] = clamp(hit[0], 60, 220)
-        node["w"] = clamp(hit[1], 30, 100)
-    elif raw and len(raw) >= 40 and "管端侧链路里这一段" not in raw and "别把目录当正文" not in raw:
-        node["d"] = clamp(raw, 60, 220)
+
+    # Prefer thick markdown section body over short CONCEPTS blurbs
+    if raw and len(raw) >= 80 and "管端侧链路里这一段" not in raw and "别把目录当正文" not in raw:
+        node["d"] = clamp(raw, 80, 2400)
         node["w"] = clamp(
-            f"把「{t}」落到可验收信号上，再下钻子点；细节以正文段落为准。",
+            (hit[1] if hit else f"把「{t}」落到可验收信号上，再下钻子点。"),
             30,
-            90,
+            100,
         )
+    elif hit:
+        node["d"] = clamp(hit[0], 60, 280)
+        node["w"] = clamp(hit[1], 30, 100)
     else:
         node["d"] = clamp(
-            f"主题「{t}」管端侧链路里这一段，下含：{cover}。"
-            f"先搞清这段的验收标准，再逐个点开知识点，别把目录当正文。",
+            f"主题「{t}」下含：{cover}。先看验收标准，再点开知识点。",
             60,
             180,
         )
@@ -791,14 +795,17 @@ def main() -> None:
 
     chapters = tree.get("kids") or []
     for i, c1 in enumerate(chapters, 1):
-        # fix enrich_l1 carefully
         t = strip_num(c1.get("t") or "")
         raw = unwrap_template(t, c1.get("d") or "")
-        if raw and len(raw) >= 20:
-            c1["d"] = clamp(raw, 40, 160)
+        if raw and len(raw) >= 40:
+            c1["d"] = clamp(raw, 40, 400)
         else:
-            c1["d"] = clamp(f"「{t}」这一章回答端侧部署里一块完整问题；先立章目标，再进主题。", 40, 120)
-        c1["w"] = clamp("给学习路径一个章节锚点，排障时先回到这一章的目标。", 24, 80)
+            c1["d"] = clamp(
+                f"「{t}」这一章把端侧部署里一块完整问题讲清楚；先看本章目标，再进主题。",
+                40,
+                120,
+            )
+        c1["w"] = clamp("排障时先回到这一章的目标，再下钻主题与知识点。", 24, 80)
         prev_ch = strip_num(chapters[i - 2].get("t") or "") if i > 1 else None
         nxt_ch = strip_num(chapters[i].get("t") or "") if i < len(chapters) else None
         kids_th = [strip_num(x.get("t") or "") for x in (c1.get("kids") or [])]
@@ -817,7 +824,9 @@ def main() -> None:
 
     payload = json.dumps(tree, ensure_ascii=False, separators=(",", ":"))
     TREE_JSON.write_text(payload, encoding="utf-8")
-    inject(HTML, payload)
+    for html_path in HTMLS:
+        if html_path.exists():
+            inject(html_path, payload)
 
     # stats
     b_l3 = b_l2 = 0
