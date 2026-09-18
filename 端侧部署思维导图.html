@@ -1078,7 +1078,13 @@ const MapApp = {
         });
     },
     explainBlock(n, metaLine) {
-        let body = `<div class="explain-label">是什么</div><p>${esc(n.d || "（暂无说明）")}</p>`;
+        const paras = (s) => String(s || "")
+            .split(/\n\n+/)
+            .map((p) => p.trim())
+            .filter(Boolean)
+            .map((p) => `<p>${esc(p)}</p>`)
+            .join("") || `<p>${esc("（暂无说明）")}</p>`;
+        let body = `<div class="explain-label">是什么</div>${paras(n.d)}`;
         if (n.w) body += `<div class="explain-label">起什么作用</div><p>${esc(n.w)}</p>`;
         if (n.b) body += `<p class="bridge-text">${esc(n.b)}</p>`;
         if (metaLine) body += `<p class="meta-line">${esc(metaLine)}</p>`;
