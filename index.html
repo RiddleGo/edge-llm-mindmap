@@ -695,7 +695,37 @@ svg {
     color: var(--accent); padding: 8px 12px; font: 500 13px var(--font-body); cursor: pointer;
 }
 .edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
-body.editing [contenteditable] { outline: 1px dashed var(--accent); }
+.edit-submit {
+    position: fixed; top: 16px; left: 88px;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+    z-index: 10001; border: 1px solid var(--key-1); background: #1a1404;
+    color: var(--key-1); padding: 8px 12px; font: 500 13px var(--font-body); cursor: pointer;
+}
+.edit-submit.show, body.editing .edit-submit { opacity: 1; pointer-events: auto; }
+body.editing [contenteditable] { outline: 1px dashed var(--accent); min-height: 1.4em; }
+.gh-modal {
+    display: none; position: fixed; inset: 0; z-index: 20000;
+    background: rgba(0,0,0,.55); align-items: center; justify-content: center;
+}
+.gh-modal.on { display: flex; }
+.gh-card {
+    width: min(440px, 92vw); background: #0b1218; border: 1px solid var(--accent-dim);
+    padding: 20px 22px; color: var(--text-primary); font-family: var(--font-body);
+}
+.gh-card h4 { margin: 0 0 10px; font-size: 16px; }
+.gh-card p { margin: 0 0 12px; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.gh-card input {
+    width: 100%; box-sizing: border-box; margin: 0 0 12px; padding: 8px 10px;
+    background: #05070a; border: 1px solid var(--accent-dim); color: var(--text-primary);
+    font: 13px var(--font-mono);
+}
+.gh-card .row { display: flex; gap: 8px; justify-content: flex-end; }
+.gh-card button {
+    border: 1px solid var(--accent); background: #04110a; color: var(--accent);
+    padding: 8px 14px; font: 500 13px var(--font-body); cursor: pointer;
+}
+.gh-card button.primary { background: var(--accent); color: #04110a; }
+.gh-card .status { min-height: 1.4em; font-size: 12px; color: var(--key-1); margin: 8px 0 0; }
 
 /* === Curriculum tabs === */
 .curr-tabs {
@@ -726,6 +756,20 @@ body.editing [contenteditable] { outline: 1px dashed var(--accent); }
 <body>
 <div class="edit-hotzone" id="editHotzone"></div>
 <button class="edit-toggle" id="editToggle" title="Edit mode (E)">编辑</button>
+<button class="edit-submit" id="editSubmit" type="button" title="把讲义写回 GitHub">提交到库</button>
+<div class="gh-modal" id="ghModal" aria-hidden="true">
+  <div class="gh-card">
+    <h4>提交讲义到 GitHub</h4>
+    <p>静态 Pages 不能自己存文件。点提交会用你的 Personal Access Token，把当前讲义写回 <code>RiddleGo/edge-llm-mindmap</code>。令牌只留在本标签页，不会写进网页。</p>
+    <p>权限：Fine-grained → 该仓库 Contents: Read and write。经典 token 则勾 <code>repo</code>。</p>
+    <input id="ghToken" type="password" autocomplete="off" placeholder="ghp_… 或 github_pat_…" />
+    <div class="row">
+      <button type="button" id="ghCancel">取消</button>
+      <button type="button" class="primary" id="ghGo">提交</button>
+    </div>
+    <div class="status" id="ghStatus"></div>
+  </div>
+</div>
 
 <div class="deck-viewport">
   <main class="deck-stage" id="deckStage">
@@ -1116,13 +1160,15 @@ const MapApp = {
         if (n.k === 2) badge = `<span class="key-badge key-2">核心</span>`;
         else if (n.k === 1) badge = `<span class="key-badge key-1">重点</span>`;
         let body = badge;
-        body += `<div class="explain-label">讲义正文</div>${paras(n.d)}`;
-        if (n.w) body += `<div class="explain-label">起什么作用</div><p>${fmt(n.w)}</p>`;
+        body += `<div class="explain-label">讲义正文</div><div data-bind="d">${paras(n.d)}</div>`;
+        if (n.w) body += `<div class="explain-label">起什么作用</div><div data-bind="w"><p>${fmt(n.w)}</p></div>`;
+        else body += `<div class="explain-label">起什么作用</div><div data-bind="w"><p></p></div>`;
         if (n.b) body += `<p class="bridge-text">${fmt(n.b)}</p>`;
         if (metaLine) body += `<p class="meta-line">${esc(metaLine)}</p>`;
         return `<div class="explain-block">${body}</div>`;
     },
     render() {
+        if (typeof window.flushLectureEdits === "function") window.flushLectureEdits();
         const col1 = document.getElementById("col1");
         const col2 = document.getElementById("col2");
         const col3 = document.getElementById("col3");
@@ -1176,6 +1222,8 @@ const MapApp = {
         if (l2) parts.push(l2.t);
         if (leaf) parts.push(leaf.t);
         document.getElementById("crumb").textContent = parts.join("  /  ");
+
+        if (typeof window.applyLectureEditable === "function") window.applyLectureEditable();
 
         requestAnimationFrame(() => {
             this.syncCanvasSize();
@@ -1241,39 +1289,207 @@ function esc(s) {
     }[c]));
 }
 
-/* === INLINE EDIT === */
+/* === INLINE EDIT + SUBMIT TO GITHUB === */
 (function () {
+    const GH_OWNER = "RiddleGo";
+    const GH_REPO = "edge-llm-mindmap";
+    const TOKEN_KEY = "edge-map-gh-token";
     const hot = document.getElementById("editHotzone");
     const btn = document.getElementById("editToggle");
+    const submitBtn = document.getElementById("editSubmit");
+    const modal = document.getElementById("ghModal");
+    const tokenInput = document.getElementById("ghToken");
+    const statusEl = document.getElementById("ghStatus");
+    const goBtn = document.getElementById("ghGo");
+    const cancelBtn = document.getElementById("ghCancel");
     let hideT, editing = false;
-    const show = () => { clearTimeout(hideT); btn.classList.add("show"); };
-    const hide = () => { hideT = setTimeout(() => { if (!editing) btn.classList.remove("show"); }, 400); };
+
+    function boundNode() {
+        const app = window.__mapApp;
+        if (!app) return TREE;
+        if (app.path[2]) return app.find(app.path[2]);
+        if (app.path[1]) return app.find(app.path[1]);
+        if (app.path[0]) return app.find(app.path[0]);
+        return TREE;
+    }
+    function boxText(el) {
+        if (!el) return "";
+        const ps = [...el.querySelectorAll("p")];
+        if (ps.length) return ps.map((p) => (p.innerText || "").trim()).filter(Boolean).join("\n\n");
+        return (el.innerText || "").trim();
+    }
+    window.flushLectureEdits = function () {
+        if (!editing) return;
+        const detail = document.getElementById("detail");
+        const n = boundNode();
+        if (!detail || !n) return;
+        const h3 = detail.querySelector("h3");
+        if (h3) n.t = (h3.innerText || "").trim() || n.t;
+        const dBox = detail.querySelector("[data-bind='d']");
+        if (dBox) n.d = boxText(dBox);
+        const wBox = detail.querySelector("[data-bind='w']");
+        if (wBox) n.w = boxText(wBox);
+    };
+    window.applyLectureEditable = function () {
+        if (!editing) return;
+        const detail = document.getElementById("detail");
+        if (!detail) return;
+        detail.querySelectorAll("h3, [data-bind='d'], [data-bind='w']").forEach((el) => {
+            el.contentEditable = "true";
+        });
+    };
+
+    const show = () => { clearTimeout(hideT); btn.classList.add("show"); submitBtn.classList.add("show"); };
+    const hide = () => { hideT = setTimeout(() => { if (!editing) { btn.classList.remove("show"); submitBtn.classList.remove("show"); } }, 400); };
     hot.addEventListener("mouseenter", show);
     hot.addEventListener("mouseleave", hide);
     btn.addEventListener("mouseenter", show);
     btn.addEventListener("mouseleave", hide);
+    submitBtn.addEventListener("mouseenter", show);
+    submitBtn.addEventListener("mouseleave", hide);
+
     const apply = () => {
         document.body.classList.toggle("editing", editing);
         btn.classList.toggle("active", editing);
-        document.querySelectorAll(".node, .detail, h1, h2, .title-lead").forEach((el) => {
-            el.contentEditable = editing ? "true" : "false";
-        });
-        if (editing) localStorage.setItem("edge-map-edit", "1");
+        btn.textContent = editing ? "退出编辑" : "编辑";
+        if (editing) {
+            window.applyLectureEditable();
+            localStorage.setItem("edge-map-edit", "1");
+        } else {
+            window.flushLectureEdits();
+        }
     };
     btn.onclick = () => { editing = !editing; apply(); };
+
+    function spliceConst(src, ident, obj) {
+        const marker = "const " + ident + " = ";
+        const i = src.indexOf(marker);
+        if (i < 0) throw new Error("找不到 " + ident);
+        const start = src.indexOf("{", i);
+        let depth = 0, inStr = false, esc = false;
+        for (let j = start; j < src.length; j++) {
+            const c = src[j];
+            if (inStr) {
+                if (esc) { esc = false; continue; }
+                if (c === "\\") { esc = true; continue; }
+                if (c === "\"") inStr = false;
+                continue;
+            }
+            if (c === "\"") { inStr = true; continue; }
+            if (c === "{") depth++;
+            else if (c === "}") {
+                depth--;
+                if (depth === 0) {
+                    return src.slice(0, start) + JSON.stringify(obj) + src.slice(j + 1);
+                }
+            }
+        }
+        throw new Error("解析 " + ident + " 失败");
+    }
+    function b64ToUtf8(b64) {
+        const bin = atob(b64.replace(/\s/g, ""));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new TextDecoder("utf-8").decode(bytes);
+    }
+    function utf8ToB64(str) {
+        const bytes = new TextEncoder().encode(str);
+        let bin = "";
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+            bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        return btoa(bin);
+    }
+    async function gh(path, method, body, token) {
+        const res = await fetch("https://api.github.com" + path, {
+            method,
+            headers: {
+                Accept: "application/vnd.github+json",
+                Authorization: "Bearer " + token,
+                "X-GitHub-Api-Version": "2022-11-28",
+                ...(body ? { "Content-Type": "application/json" } : {}),
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        });
+        const text = await res.text();
+        let data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { message: text }; }
+        if (!res.ok) throw new Error(data.message || ("GitHub " + res.status));
+        return data;
+    }
+    async function putFile(token, rel, content, message) {
+        const enc = rel.split("/").map(encodeURIComponent).join("/");
+        const meta = await gh("/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/" + enc, "GET", null, token);
+        await gh("/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/" + enc, "PUT", {
+            message,
+            content: utf8ToB64(content),
+            sha: meta.sha,
+            branch: "main",
+        }, token);
+    }
+
+    function openModal() {
+        window.flushLectureEdits();
+        statusEl.textContent = "";
+        tokenInput.value = sessionStorage.getItem(TOKEN_KEY) || "";
+        modal.classList.add("on");
+        modal.setAttribute("aria-hidden", "false");
+        tokenInput.focus();
+    }
+    function closeModal() {
+        modal.classList.remove("on");
+        modal.setAttribute("aria-hidden", "true");
+    }
+    submitBtn.onclick = () => {
+        if (!editing) { editing = true; apply(); }
+        openModal();
+    };
+    cancelBtn.onclick = closeModal;
+    modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
+
+    goBtn.onclick = async () => {
+        const token = (tokenInput.value || "").trim();
+        if (!token) { statusEl.textContent = "先填 Personal Access Token"; return; }
+        sessionStorage.setItem(TOKEN_KEY, token);
+        goBtn.disabled = true;
+        statusEl.textContent = "正在写回仓库…";
+        try {
+            window.flushLectureEdits();
+            const htmlMeta = await gh("/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/index.html", "GET", null, token);
+            let html = b64ToUtf8(htmlMeta.content);
+            html = spliceConst(html, "TREE_MAIN", TREE_MAIN);
+            html = spliceConst(html, "TREE_JD", TREE_JD);
+            const msg = "Update lecture from web editor";
+            await gh("/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/index.html", "PUT", {
+                message: msg,
+                content: utf8ToB64(html),
+                sha: htmlMeta.sha,
+                branch: "main",
+            }, token);
+            statusEl.textContent = "index.html 已写。同步另一份 HTML…";
+            await putFile(token, "端侧部署思维导图.html", html, msg);
+            statusEl.textContent = "同步 mindmap-tree.json…";
+            await putFile(token, "mindmap-tree.json", JSON.stringify(TREE_MAIN), msg);
+            statusEl.textContent = "已提交。一两分钟后刷新 Pages 即可看到。";
+        } catch (err) {
+            statusEl.textContent = "失败：" + (err && err.message ? err.message : err);
+        } finally {
+            goBtn.disabled = false;
+        }
+    };
+
     document.addEventListener("keydown", (e) => {
         if (e.key === "e" || e.key === "E") {
             if (e.target && (e.target.tagName === "INPUT" || e.target.isContentEditable) && !document.body.classList.contains("editing")) return;
             if (e.target && e.target.closest && e.target.closest(".node") && editing) return;
+            if (e.target && e.target.closest && e.target.closest("#ghModal")) return;
             editing = !editing; apply();
         }
         if ((e.ctrlKey || e.metaKey) && e.key === "s") {
             e.preventDefault();
-            const blob = new Blob([document.documentElement.outerHTML], {type:"text/html"});
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "端侧部署思维导图.html";
-            a.click();
+            window.flushLectureEdits();
+            openModal();
         }
     });
 })();
