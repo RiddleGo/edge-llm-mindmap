@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-"""自己改完 md 之后，双击或运行本文件：重建思维导图并推到 GitHub Pages。"""
+"""自己改完 md 之后运行：重建思维导图并推到 GitHub Pages。
+
+推送靠本机已登录的 GitHub CLI（gh），不会也不应把 token 写进仓库。
+新电脑只需第一次：gh auth login
+"""
 from __future__ import annotations
 
 import subprocess
@@ -16,7 +20,29 @@ def run(script: str) -> None:
         raise SystemExit(f"失败：{script}（退出码 {p.returncode}）")
 
 
+def ensure_gh_login() -> None:
+    p = subprocess.run(
+        ["gh", "auth", "status"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if p.returncode == 0:
+        print("GitHub 已登录，可以推送。")
+        return
+    print("还没登录 GitHub CLI，无法一键推送。")
+    print("请在本机终端执行一次（只需一次）：")
+    print("  gh auth login")
+    print("选 GitHub.com → HTTPS → 浏览器登录。")
+    print("登录后再运行：python 更新网页.py")
+    print("说明：token 不能写进仓库，否则网上谁都能拿走改你的库。")
+    raise SystemExit(1)
+
+
 def main() -> None:
+    ensure_gh_login()
     print("1/5 从《端侧模型部署.md》生成主线树")
     run("build_mindmap_tree.py")
     print("2/5 灌讲义、加厚叶子")

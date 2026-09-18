@@ -25,6 +25,7 @@ PUSH_PATHS = [
     "维护手册.md",
     "更新网页.py",
     "更新网页.bat",
+    ".gitignore",
     "build_mindmap_tree.py",
     "build_jd_gap_tree.py",
     "_enrich_content_v2.py",
