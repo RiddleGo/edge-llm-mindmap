@@ -1097,7 +1097,7 @@ const MapApp = {
             .split(/\n\n+/)
             .map((p) => p.trim())
             .filter(Boolean)
-            .map((p) => `<p>${fmt(p)}</p>`)
+            .map((p) => `<p>${fmt(p).replace(/\n/g, "<br>")}</p>`)
             .join("") || `<p>${esc("（暂无说明）")}</p>`;
         let badge = "";
         if (n.k === 2) badge = `<span class="key-badge key-2">核心</span>`;

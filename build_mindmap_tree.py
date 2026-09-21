@@ -36,6 +36,7 @@ BOLD_LEAD = re.compile(r"^\*\*([①-⑳]?\s*.+?)\*\*\s+(.+)$")
 CIRCLE_ITEM = re.compile(r"^[①-⑳]")
 
 L2_D_MAX = 12000
+L1_D_MAX = 12000
 L3_D_MAX = 6000
 L3_T_MAX = 48
 L3_CAP = 100
@@ -66,6 +67,8 @@ def normalize_para(line: str) -> str:
         return "；".join(cells)
     if line.startswith(">"):
         return line.lstrip("> ").strip()
+    if re.match(r"^[-*]{3,}\s*$", line.strip()):
+        return ""
     if line.startswith(("- ", "* ")):
         body = line[2:].strip()
         m = TERM.match(line) or re.match(r"^- \*\*(.+?)\*\*\s*(.*)$", line)
@@ -83,7 +86,38 @@ tree = {
 }
 cur1 = cur2 = None
 para_buf: list[str] = []
+l1_buf: list[str] = []
 open_leaf: dict | None = None
+leaf_gap = False
+
+
+def text_from_buf(buf: list[str]) -> str:
+    """Blank line → paragraph gap; consecutive lines → hard line breaks."""
+    paras: list[str] = []
+    cur: list[str] = []
+    for p in buf:
+        if p == "":
+            if cur:
+                paras.append("\n".join(cur))
+                cur = []
+        else:
+            cur.append(p)
+    if cur:
+        paras.append("\n".join(cur))
+    return "\n\n".join(paras)
+
+
+def flush_l1() -> None:
+    global l1_buf
+    if not cur1 or not l1_buf:
+        l1_buf = []
+        return
+    body = text_from_buf(l1_buf)
+    l1_buf = []
+    if not body:
+        return
+    cur = (cur1.get("d") or "").strip()
+    cur1["d"] = clip((cur + "\n\n" + body).strip() if cur else body, L1_D_MAX)
 
 
 def flush_paras_into_l2() -> None:
@@ -91,7 +125,7 @@ def flush_paras_into_l2() -> None:
     if not cur2 or not para_buf:
         para_buf = []
         return
-    body = "\n\n".join(p for p in para_buf if p)
+    body = text_from_buf(para_buf)
     para_buf = []
     if not body:
         return
@@ -101,22 +135,37 @@ def flush_paras_into_l2() -> None:
 
 
 def close_leaf() -> None:
-    global open_leaf
+    global open_leaf, leaf_gap
     open_leaf = None
+    leaf_gap = False
+
+
+def append_open(p: str) -> None:
+    """Consecutive lines break; a prior blank line starts a new paragraph."""
+    global leaf_gap
+    if open_leaf is None or not p:
+        return
+    cur = open_leaf.get("d") or ""
+    sep = "\n\n" if cur and leaf_gap else ("\n" if cur else "")
+    open_leaf["d"] = clip(cur + sep + p, L3_D_MAX)
+    leaf_gap = False
 
 
 def new_l1(title: str) -> None:
-    global cur1, cur2, para_buf
+    global cur1, cur2, para_buf, l1_buf
     flush_paras_into_l2()
+    flush_l1()
     close_leaf()
     cur1 = {"id": f"c{len(tree['kids']) + 1}", "t": short(title, 56), "d": "", "kids": []}
     tree["kids"].append(cur1)
     cur2 = None
     para_buf = []
+    l1_buf = []
 
 
 def new_l2(title: str) -> None:
     global cur2, para_buf
+    flush_l1()
     flush_paras_into_l2()
     close_leaf()
     if not cur1:
@@ -195,16 +244,16 @@ for raw in text.splitlines():
             or BOLD_LEAD.match(line)
             or CIRCLE_ITEM.match(line.lstrip("*").lstrip())
         )
-        if not line.strip() or line.startswith("#"):
+        if line.startswith("#"):
+            continue
+        if not line.strip() or re.match(r"^[-*]{3,}\s*$", line.strip()):
+            if l1_buf and l1_buf[-1] != "":
+                l1_buf.append("")
             continue
         if not structured:
             p = normalize_para(line)
-            if not p:
-                continue
-            if not cur1["d"]:
-                cur1["d"] = short(p, 400)
-            else:
-                cur1["d"] = clip(cur1["d"] + " " + p, 800)
+            if p:
+                l1_buf.append(p)
             continue
         ensure_theme_for_loose_content(line)
 
@@ -237,15 +286,15 @@ for raw in text.splitlines():
         p = normalize_para(line)
         if p:
             if open_leaf is not None:
-                cur = open_leaf.get("d") or ""
-                open_leaf["d"] = clip((cur + "\n\n" + p).strip() if cur else p, L3_D_MAX)
+                append_open(p)
             else:
                 para_buf.append(p)
         continue
 
-    if not line.strip():
-        # blank line: keep paragraph break in buffer
-        if para_buf and para_buf[-1] != "":
+    if not line.strip() or re.match(r"^[-*]{3,}\s*$", line.strip()):
+        if open_leaf is not None:
+            leaf_gap = True
+        elif para_buf and para_buf[-1] != "":
             para_buf.append("")
         continue
 
@@ -256,20 +305,12 @@ for raw in text.splitlines():
     if not p:
         continue
     if open_leaf is not None:
-        cur = open_leaf.get("d") or ""
-        open_leaf["d"] = clip((cur + "\n\n" + p).strip() if cur else p, L3_D_MAX)
+        append_open(p)
     else:
-        # collapse accidental empty sentinels
-        if p and (not para_buf or para_buf[-1] != ""):
-            para_buf.append(p)
-        elif p:
-            # after blank marker: start new para
-            if para_buf and para_buf[-1] == "":
-                para_buf[-1] = p
-            else:
-                para_buf.append(p)
+        para_buf.append(p)
 
 flush_paras_into_l2()
+flush_l1()
 close_leaf()
 
 

@@ -88,7 +88,7 @@ def main() -> None:
         "POST",
         f"/repos/{OWNER}/{REPO}/git/commits",
         {
-            "message": "Adaptive mind-map depth: fold thin themes, hide empty leaf column.\n\nStop at chapter/theme when few points; keep L3 only for dense sections so navigation matches content size.",
+            "message": "Keep lecture line breaks and paragraph gaps from the markdown.\n\nStore blank lines as paragraphs and single newlines as breaks; render them in the reading panel instead of collapsing to one line.",
             "tree": tree["sha"],
             "parents": [parent],
         },
