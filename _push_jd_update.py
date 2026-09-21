@@ -31,6 +31,7 @@ PUSH_PATHS = [
     "_enrich_content_v2.py",
     "_thicken_leaves.py",
     "_batch_fill_leaves.py",
+    "_inject_main_tree.py",
     "_refresh_jd_tree.py",
     "_push_jd_update.py",
 ]
@@ -87,7 +88,7 @@ def main() -> None:
         "POST",
         f"/repos/{OWNER}/{REPO}/git/commits",
         {
-            "message": "Rebuild mind map from updated JD skill-graph markdown.\n\nParse 一、二、三… chapters into TREE_MAIN and re-inject index.html / 端侧部署思维导图.html for GitHub Pages.",
+            "message": "Inject mind map from markdown verbatim (no enrich rewrite).\n\nTREE_MAIN prose comes from 端侧模型部署.md section text; skip thicken/batch-fill so panel copy matches the doc.",
             "tree": tree["sha"],
             "parents": [parent],
         },
