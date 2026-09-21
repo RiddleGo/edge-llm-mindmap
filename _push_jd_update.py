@@ -87,7 +87,7 @@ def main() -> None:
         "POST",
         f"/repos/{OWNER}/{REPO}/git/commits",
         {
-            "message": "Thicken mind-map leaves for main tutorial and JD gap tree.\n\nRe-inject multi-paragraph prose into TREE_MAIN/TREE_JD so panel copy is dense (JD thin rate down sharply); keep both HTML entry points in sync for Pages.",
+            "message": "Rebuild mind map from updated JD skill-graph markdown.\n\nParse 一、二、三… chapters into TREE_MAIN and re-inject index.html / 端侧部署思维导图.html for GitHub Pages.",
             "tree": tree["sha"],
             "parents": [parent],
         },

@@ -9,7 +9,24 @@ from pathlib import Path
 root = Path(__file__).resolve().parent
 md = next(p for p in root.iterdir() if p.name == "端侧模型部署.md")
 text = md.read_text(encoding="utf-8")
-text = "".join(p if i % 2 == 0 else "" for i, p in enumerate(text.split("```")))
+
+
+def keep_fence_text(src: str) -> str:
+    """Keep fenced blocks as prose (skill-map ASCII, formulas) instead of dropping them."""
+    parts = src.split("```")
+    out: list[str] = []
+    for i, p in enumerate(parts):
+        if i % 2 == 0:
+            out.append(p)
+            continue
+        lines = p.splitlines()
+        if lines and re.match(r"^[A-Za-z0-9_+\-]*\s*$", lines[0]):
+            lines = lines[1:]
+        out.append("\n".join(lines))
+    return "".join(out)
+
+
+text = keep_fence_text(text)
 
 
 def short(s: str, n: int = 40) -> str:
@@ -32,8 +49,11 @@ def clip(s: str, n: int) -> str:
 
 CIRCLE = "〇①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯"
 TOP_RE = re.compile(rf"^#{{1,2}}\s+([{CIRCLE}])(?!-)\s*(.*)$")
+CN_TOP_RE = re.compile(r"^#{1,2}\s+([一二三四五六七八九十]{1,3})、\s*(.+)$")
 TERM_RE = re.compile(r"^- \*\*(.+?)\*\*\s*[—–:：]\s*(.+)$")
 BOLD_RE = re.compile(r"^\*\*(.+?)\*\*\s*[—–:：]\s*(.+)$")
+BOLD_LEAD_RE = re.compile(r"^\*\*([①-⑳]?\s*.+?)\*\*\s+(.+)$")
+CIRCLE_ITEM = re.compile(r"^[①-⑳]")
 
 L2_D_MAX = 3200
 L3_D_MAX = 1800
@@ -43,7 +63,7 @@ L3_CAP = 80  # ⑬/⑮ 同节 ### 很多；过低会静默丢叶
 tree = {
     "id": "root",
     "t": "端侧大模型部署",
-    "d": "按章依次讲：〇→①→…→⑯。导出 → 变轻 → 转换 Runtime → 量稳验收 → 交付。点开看「是什么 / 作用」。",
+    "d": "按岗位画像 → 能力分层 → 五层技能 → 面试考点展开。点开看「是什么 / 作用」。",
     "kids": [],
 }
 cur1 = cur2 = None
@@ -62,12 +82,17 @@ def new_l1(title: str) -> None:
     global cur1, cur2, ext_mark, l2_from_h2, para_buf
     flush_section()
     close_leaf()
-    cur1 = {"id": f"c{len(tree['kids'])+1}", "t": short(title, 40), "d": "", "kids": []}
+    cur1 = {"id": f"c{len(tree['kids'])+1}", "t": short(title, 48), "d": "", "kids": []}
     tree["kids"].append(cur1)
     cur2 = None
     ext_mark = title.startswith(("⑬", "⑭", "⑮", "⑯"))
     l2_from_h2 = False
     para_buf = []
+
+
+def ensure_l2(title: str = "本章要点") -> None:
+    if not cur2:
+        new_l2(title, from_h2=False)
 
 
 def new_l2(title: str, from_h2: bool = False) -> None:
@@ -161,6 +186,10 @@ for raw in text.splitlines():
     if tm:
         new_l1((tm.group(1) + " " + tm.group(2)).strip())
         continue
+    cn = CN_TOP_RE.match(line)
+    if cn:
+        new_l1(f"{cn.group(1)}、{cn.group(2).strip()}")
+        continue
     if re.match(r"^##\s+", line) and cur1:
         new_l2(line[3:].strip(), from_h2=True)
         continue
@@ -177,9 +206,31 @@ for raw in text.splitlines():
     if not cur1:
         continue
     if not cur2:
-        if line and not line.startswith(("#", "|", ">", "-", "*")) and not cur1["d"]:
-            cur1["d"] = short(line, 240)
-        continue
+        structured = bool(
+            line.startswith(("- ", "* ", "|"))
+            or TERM_RE.match(line)
+            or BOLD_RE.match(line)
+            or BOLD_LEAD_RE.match(line)
+            or CIRCLE_ITEM.match(line.lstrip("*").lstrip())
+            or re.match(r"^\d+[\.、]\s*", line)
+            or re.match(r"^第[一二三四五六七八九十]+层", line.strip())
+        )
+        if not line.strip() or line.startswith("#"):
+            continue
+        if not structured:
+            p = plain(line)
+            if not p:
+                continue
+            if not cur1["d"]:
+                cur1["d"] = short(p, 280)
+            else:
+                cur1["d"] = clip(cur1["d"] + " " + p, 480)
+            continue
+        lead = BOLD_LEAD_RE.match(line) or BOLD_RE.match(line) or TERM_RE.match(line)
+        circled = bool(lead and CIRCLE_ITEM.match(lead.group(1).lstrip()))
+        if not circled:
+            new_l2("要点", from_h2=False)
+        # circled bold heads open their own L2 in the BOLD_LEAD handler below
 
     # Under a ### leaf: keep bold/term as section meat, do not spawn sibling leaves
     # that later get merged away and erase the ### title (BitNet / Runbook / OTA…).
@@ -198,6 +249,20 @@ for raw in text.splitlines():
             continue
         flush_section()
         add_l3(bold.group(1), f"{bold.group(1)} — {bold.group(2)}")
+        continue
+    bold_lead = BOLD_LEAD_RE.match(line)
+    if bold_lead:
+        title = bold_lead.group(1).strip("。；; ")
+        body = bold_lead.group(2).strip()
+        if CIRCLE_ITEM.match(title):
+            new_l2(title, from_h2=False)
+            add_l3(title, f"{title} — {body}")
+            continue
+        if open_leaf is not None and open_leaf.get("_from_h3"):
+            append_prose(f"{title} — {body}")
+            continue
+        flush_section()
+        add_l3(title, f"{title} — {body}")
         continue
     if line.startswith("- ") or line.startswith("* "):
         body = line[2:].strip()
@@ -290,11 +355,13 @@ for c in tree["kids"]:
 
 def renumber_teaching_order(tree: dict) -> dict:
     circle = re.compile(r"^(?:〇|①|②|③|④|⑤|⑥|⑦|⑧|⑨|⑩|⑪|⑫|⑬|⑭|⑮|⑯)(?:-?\d+)?\s*[·.\s、]*\s*")
+    cn = re.compile(r"^[一二三四五六七八九十]{1,3}、\s*")
     num = re.compile(r"^(?:\d+(?:\.\d+){0,3})\s*[·.\s、\-–—]+\s*")
 
     def strip_old(title: str) -> str:
         t = title.strip()
         t = circle.sub("", t)
+        t = cn.sub("", t)
         t = num.sub("", t)
         return t.strip(" ·.-–—") or title.strip()
 
@@ -304,7 +371,7 @@ def renumber_teaching_order(tree: dict) -> dict:
             c2["t"] = f"{i}.{j} · {strip_old(c2.get('t') or '')}"
             for k, c3 in enumerate(c2.get("kids") or [], 1):
                 c3["t"] = f"{i}.{j}.{k} · {strip_old(c3.get('t') or '')}"
-    tree["d"] = "按章依次讲：〇→①→…→⑯。点开看「是什么 / 作用」。主题层补一句这段在链路里的位置。"
+    tree["d"] = "按岗位画像 → 能力分层 → 五层技能 → 面试考点展开。点开看「是什么 / 作用」。"
     return tree
 
 

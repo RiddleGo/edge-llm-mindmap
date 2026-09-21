@@ -789,7 +789,7 @@ def main() -> None:
     tree = json.loads(TREE_JSON.read_text(encoding="utf-8"))
     tree["d"] = (
         "讲课序号 1→N。点开看「是什么 / 作用」。"
-        "主题层多一句：这段在链路里补哪一环。"
+        "主线：岗位画像 → 能力分层 → 五层技能 → 面试考点。"
         "高亮：琥珀=重点，珊瑚=核心。"
     )
 
