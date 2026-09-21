@@ -1128,7 +1128,8 @@ const MapApp = {
 
         const l2 = this.path[1] ? this.find(this.path[1]) : null;
         const leaves = l2 && l2.kids ? l2.kids : [];
-        col3.classList.toggle("show", !!l2);
+        // only show知识点列 when theme actually has children（内容少则停在主题）
+        col3.classList.toggle("show", !!(l2 && leaves.length));
         const start = this.l3Page * this.pageSize;
         const page = leaves.slice(start, start + this.pageSize);
         this.fillList(list3, page, 3, this.path[2], true);
@@ -1151,11 +1152,12 @@ const MapApp = {
         if (leaf) {
             detail.innerHTML = `<h3>${esc(leaf.t)}</h3>${this.explainBlock(leaf)}`;
         } else if (l2) {
-            detail.innerHTML = `<h3>${esc(l2.t)}</h3>${this.explainBlock(l2, `右侧 ${leaves.length} 个知识点`)}`;
+            const hint = leaves.length ? `右侧 ${leaves.length} 个知识点` : "";
+            detail.innerHTML = `<h3>${esc(l2.t)}</h3>${this.explainBlock(l2, hint)}`;
         } else if (l1) {
             detail.innerHTML = `<h3>${esc(l1.t)}</h3>${this.explainBlock(l1, "选择主题继续")}`;
         } else {
-            detail.innerHTML = `<h3>从左边开始</h3><p>点根节点 → 选一章 → 选主题 → 选知识点。目录只负责导航，说明都在右侧阅读。</p>`;
+            detail.innerHTML = `<h3>从左边开始</h3><p>点根节点 → 选一章 → 再选主题。内容多的主题才会展开知识点；基础小节点到主题即可读全文。</p>`;
         }
 
         const parts = ["根"];

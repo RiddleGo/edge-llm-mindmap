@@ -88,7 +88,7 @@ def main() -> None:
         "POST",
         f"/repos/{OWNER}/{REPO}/git/commits",
         {
-            "message": "Inject mind map from markdown verbatim (no enrich rewrite).\n\nTREE_MAIN prose comes from 端侧模型部署.md section text; skip thicken/batch-fill so panel copy matches the doc.",
+            "message": "Adaptive mind-map depth: fold thin themes, hide empty leaf column.\n\nStop at chapter/theme when few points; keep L3 only for dense sections so navigation matches content size.",
             "tree": tree["sha"],
             "parents": [parent],
         },

@@ -224,8 +224,10 @@ for raw in text.splitlines():
         title = bold_lead.group(1).strip("。；; ")
         body = bold_lead.group(2).strip()
         if CIRCLE_ITEM.match(title):
+            # short circled JD bullets: theme-level only (no fake 1.1.1)
             new_l2(title)
-            add_l3(title, f"**{title}** — {body}")
+            cur2["d"] = clip(f"**{title}** — {body}", L2_D_MAX)
+            close_leaf()
             continue
         flush_paras_into_l2()
         add_l3(title, f"**{title}** — {body}")
@@ -270,24 +272,103 @@ for raw in text.splitlines():
 flush_paras_into_l2()
 close_leaf()
 
-# Ensure every L2 has at least one leaf carrying the section body
-for c1 in tree["kids"]:
-    for c2 in c1.get("kids") or []:
-        body = (c2.get("d") or "").strip()
-        if not c2.get("kids"):
-            c2["kids"] = [
-                {
-                    "id": f"{c2['id']}-1",
-                    "t": short(c2["t"], L3_T_MAX),
-                    "d": body or c2["t"],
-                    "kids": [],
-                }
-            ]
-        elif body:
-            # If leaves are thin, put full section on first leaf as well when empty
-            first = c2["kids"][0]
-            if len(first.get("d") or "") < 40 and body:
-                first["d"] = clip(body, L3_D_MAX)
+
+def bare_title(title: str) -> str:
+    t = (title or "").strip()
+    t = re.sub(r"^(?:\d+(?:\.\d+)*)\s*[·.\s、\-–—]+\s*", "", t)
+    t = re.sub(r"^[一二三四五六七八九十]{1,3}、\s*", "", t)
+    t = re.sub(r"^[〇①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯①-⑳]\s*", "", t)
+    return t.strip(" ·.-–—")
+
+
+def titles_alike(a: str, b: str) -> bool:
+    x, y = bare_title(a), bare_title(b)
+    if not x or not y:
+        return False
+    if x == y:
+        return True
+    if x in y or y in x:
+        return True
+    return False
+
+
+def adaptive_depth(tree: dict) -> None:
+    """Keep L3 only when a theme has enough distinct points; otherwise stop at theme.
+
+    - 0–2 leaves → fold into L2.d（两/三层：根→章→主题）
+    - 3+ leaves → keep L3（四层：根→章→主题→知识点）
+    - L1 with a lone empty「要点」wrapper → promote its kids
+    """
+    KEEP_L3_MIN = 3
+
+    for c1 in tree.get("kids") or []:
+        kids = c1.get("kids") or []
+        # promote lone wrapper themes
+        if len(kids) == 1 and bare_title(kids[0].get("t") or "") in ("要点", "本章要点"):
+            wrap = kids[0]
+            if wrap.get("kids"):
+                c1["kids"] = wrap["kids"]
+                if not (c1.get("d") or "").strip() and (wrap.get("d") or "").strip():
+                    c1["d"] = wrap["d"]
+            elif (wrap.get("d") or "").strip():
+                c1["d"] = clip(
+                    ((c1.get("d") or "") + "\n\n" + wrap["d"]).strip()
+                    if c1.get("d")
+                    else wrap["d"],
+                    L2_D_MAX,
+                )
+                c1["kids"] = []
+            kids = c1.get("kids") or []
+
+        for c2 in kids:
+            leaves = c2.get("kids") or []
+            body = (c2.get("d") or "").strip()
+
+            # no leaves: prose stays on theme — good (3 levels)
+            if not leaves:
+                continue
+
+            # few leaves → fold into theme
+            fold = False
+            if len(leaves) < KEEP_L3_MIN:
+                fold = True
+            elif len(leaves) == 1 and titles_alike(c2.get("t") or "", leaves[0].get("t") or ""):
+                fold = True
+
+            if not fold:
+                # still merge empty theme body from first leaf if theme d blank? keep as is
+                continue
+
+            chunks: list[str] = []
+            if body:
+                chunks.append(body)
+            for leaf in leaves:
+                ld = (leaf.get("d") or "").strip()
+                lt = bare_title(leaf.get("t") or "")
+                if not ld:
+                    continue
+                # avoid duplicating if leaf is just title-echo of theme
+                if titles_alike(c2.get("t") or "", leaf.get("t") or "") and ld:
+                    if ld not in chunks and not any(ld[:40] in c for c in chunks):
+                        chunks.append(ld)
+                else:
+                    # keep distinct point with its title when folding multi
+                    piece = ld if ld.startswith("**") or ld.startswith(lt) else f"**{lt}** — {ld}"
+                    if not any(piece[:40] in c for c in chunks):
+                        chunks.append(piece)
+            c2["d"] = clip("\n\n".join(chunks), L2_D_MAX) if chunks else body
+            c2["kids"] = []
+
+        # drop empty L2 husks
+        c1["kids"] = [
+            c2
+            for c2 in (c1.get("kids") or [])
+            if (c2.get("t") or "").strip()
+            and ((c2.get("d") or "").strip() or (c2.get("kids") or []))
+        ]
+
+
+adaptive_depth(tree)
 
 
 def renumber(tree: dict) -> dict:
