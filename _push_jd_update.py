@@ -88,7 +88,7 @@ def main() -> None:
         "POST",
         f"/repos/{OWNER}/{REPO}/git/commits",
         {
-            "message": "Keep lecture line breaks and paragraph gaps from the markdown.\n\nStore blank lines as paragraphs and single newlines as breaks; render them in the reading panel instead of collapsing to one line.",
+            "message": "Refresh chapters 1–2: job portrait and progressive skill tiers.\n\nRewrite 岗位画像 six duties and 能力分层 as cumulative junior/mid/senior; reinject TREE_MAIN with preserved line breaks.",
             "tree": tree["sha"],
             "parents": [parent],
         },

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -10,6 +11,23 @@ sys.stdout.reconfigure(encoding="utf-8")
 ROOT = Path(__file__).resolve().parent
 TREE = ROOT / "mindmap-tree.json"
 HTMLS = [ROOT / "端侧部署思维导图.html", ROOT / "index.html"]
+
+ROLE_RE = re.compile(
+    r"(?:^|\n)\s*(?:\*\*)?起什么作用(?:\*\*)?[：:]\s*(.+?)(?=\n\n|\n(?:\*\*)?一句话|\Z)",
+    re.S,
+)
+NUM = re.compile(r"^\d+(?:\.\d+)*\s*[·.\s、\-–—]+\s*")
+
+
+def strip_title(t: str) -> str:
+    return NUM.sub("", (t or "").strip()).strip()
+
+
+def extract_role(d: str) -> str:
+    m = ROLE_RE.search(d or "")
+    if not m:
+        return ""
+    return re.sub(r"\s+", " ", m.group(1)).strip().strip("*。")
 
 
 def inject(path: Path, payload: str) -> None:
@@ -64,20 +82,25 @@ def inject(path: Path, payload: str) -> None:
 
 def main() -> None:
     tree = json.loads(TREE.read_text(encoding="utf-8"))
-    # light teaching fields without rewriting prose
     for c1 in tree.get("kids") or []:
         for c2 in c1.get("kids") or []:
-            if not (c2.get("w") or "").strip():
-                bare = c2.get("t") or ""
-                c2["w"] = f"本节对应文档小节，右侧正文来自原稿。"
+            role = extract_role(c2.get("d") or "")
+            if role:
+                c2["w"] = role
+            elif not (c2.get("w") or "").strip() or "本节对应文档小节" in (c2.get("w") or ""):
+                c2["w"] = f"弄清「{strip_title(c2.get('t') or '')}」，排障和选型时才知道该动哪一环。"
             for leaf in c2.get("kids") or []:
-                if not (leaf.get("w") or "").strip():
+                role_l = extract_role(leaf.get("d") or "")
+                if role_l:
+                    leaf["w"] = role_l
+                elif not (leaf.get("w") or "").strip() or "本节对应文档小节" in (leaf.get("w") or ""):
                     leaf["w"] = "弄清这一点，面试/落地时才知道该动哪一环。"
                 leaf.setdefault("b", "")
                 leaf.setdefault("k", 0)
             c2.setdefault("b", "")
             c2.setdefault("k", 0)
-        c1.setdefault("w", "给学习路径一个章节锚点。")
+        if not (c1.get("w") or "").strip():
+            c1["w"] = "给学习路径一个章节锚点。"
         c1.setdefault("b", "")
         c1.setdefault("k", 0)
     payload = json.dumps(tree, ensure_ascii=False, separators=(",", ":"))
