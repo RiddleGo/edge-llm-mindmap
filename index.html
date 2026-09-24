@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="fluid">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#070b10" />
+<meta name="mobile-web-app-capable" content="yes" />
 <title>端侧大模型部署 · 思维导图</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -711,9 +713,168 @@ svg {
 }
 .curr-tab:hover:not(.on) { color: var(--accent-bright); }
 
+.pane-tabs { display: none; }
+.tool.pane-tab { min-height: 36px; }
+
+/* Fluid layout: fill the real window instead of scaling a 1920×1080 canvas */
+html.fluid, html.fluid body {
+    overflow: hidden;
+    height: 100%;
+    height: 100dvh;
+}
+html.fluid .deck-viewport {
+    position: fixed;
+    inset: 0;
+}
+html.fluid .deck-stage {
+    position: relative;
+    width: 100% !important;
+    height: 100% !important;
+    transform: none !important;
+    overflow: hidden;
+}
+html.fluid .slide {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0;
+}
+html.fluid .title-slide {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: max(24px, env(safe-area-inset-top)) 8vw 12vh;
+    gap: 18px;
+}
+html.fluid .title-slide .glow {
+    width: min(90vw, 520px);
+    height: min(90vw, 520px);
+    top: 42%;
+}
+html.fluid .title-kicker,
+html.fluid .title-slide h1,
+html.fluid .title-lead,
+html.fluid .enter-btn,
+html.fluid .title-hint {
+    position: static;
+    max-width: 42rem;
+    text-align: left;
+}
+html.fluid .title-slide h1 {
+    font-size: clamp(36px, 8vw, 84px);
+    line-height: 1.12;
+}
+html.fluid .title-lead { font-size: clamp(16px, 2.4vw, 24px); }
+html.fluid .enter-btn {
+    align-self: flex-start;
+    min-height: 48px;
+    padding: 14px 28px;
+}
+html.fluid .title-hint { font-size: 12px; max-width: 28rem; }
+html.fluid #mapSlide {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+html.fluid .map-top {
+    position: relative;
+    left: auto; right: auto; top: auto;
+    height: auto;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    padding-top: max(10px, env(safe-area-inset-top));
+    gap: 8px;
+    width: 100%;
+}
+html.fluid .map-hint {
+    position: relative;
+    left: auto; right: auto; top: auto;
+    padding: 0 16px 8px;
+}
+html.fluid .reader { min-height: 0; }
+html.fluid .deck-controls {
+    bottom: max(12px, env(safe-area-inset-bottom));
+}
+html.fluid .deck-controls button {
+    min-width: 44px;
+    min-height: 36px;
+    background: var(--node-bg);
+    color: var(--text-leaf);
+    border: 1px solid var(--accent-dim);
+}
+
+@media (max-width: 900px) {
+    html.fluid .map-legend,
+    html.fluid #btnLtr,
+    html.fluid #btnTtb,
+    html.fluid #btnView,
+    html.fluid .map-hint { display: none; }
+    html.fluid .pane-tabs {
+        display: inline-flex;
+        gap: 0;
+        border: 1px solid var(--accent-dim);
+        margin-left: auto;
+    }
+    html.fluid .map-top h2 { font-size: 18px; margin-right: 4px; }
+    html.fluid .crumb { flex: 1 1 100%; order: 8; font-size: 12px; }
+    html.fluid .map-workspace {
+        display: flex;
+        flex-direction: column;
+        grid-template-columns: none;
+    }
+    html.fluid .split-handle { display: none !important; }
+    html.fluid .map-board {
+        flex: 1 1 auto;
+        min-height: 0;
+        padding: 8px 12px 16px;
+    }
+    html.fluid .reader {
+        flex: 1 1 auto;
+        min-height: 0;
+        border-top: 1px solid rgba(74, 222, 128, 0.28);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+    html.fluid body.pane-tree .reader { display: none; }
+    html.fluid body.pane-read .map-board { display: none; }
+    html.fluid body.pane-read .split-handle { display: none; }
+    html.fluid #col0.show,
+    html.fluid #col1.show,
+    html.fluid #col2.show,
+    html.fluid #col3.show {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+    }
+    html.fluid .cols {
+        flex-direction: column;
+        width: 100%;
+        min-width: 0;
+        gap: 12px;
+    }
+    html.fluid .node {
+        min-height: 44px;
+        font-size: 15px;
+        padding: 10px 12px;
+    }
+    html.fluid .explain-block p,
+    html.fluid .detail > p {
+        font-size: 16px;
+        max-width: none;
+    }
+    html.fluid .deck-controls { display: none; }
+}
+
+@media (min-width: 901px) and (max-width: 1280px) {
+    html.fluid .map-workspace {
+        grid-template-columns: minmax(220px, 1fr) 8px minmax(280px, 38vw);
+    }
+    html.fluid #col0.show { width: 200px; min-width: 180px; max-width: 220px; }
+    html.fluid #col1.show,
+    html.fluid #col2.show { width: 240px; min-width: 200px; max-width: 280px; }
+}
+
 </style>
 </head>
-<body>
+<body class="pane-tree">
 <div class="deck-viewport">
   <main class="deck-stage" id="deckStage">
 
@@ -747,6 +908,10 @@ svg {
         <button class="tool" id="btnTtb" type="button">从上到下</button>
         <button class="tool" id="btnReset" type="button">复位树</button>
         <button class="tool" id="btnView" type="button" title="快捷键 0，或双击空白">复位视图</button>
+        <div class="pane-tabs" role="tablist" aria-label="手机视图">
+          <button class="tool pane-tab on" id="btnPaneTree" type="button">目录</button>
+          <button class="tool pane-tab" id="btnPaneRead" type="button">讲义</button>
+        </div>
       </div>
       <div class="map-hint">左侧点目录 · 列表内滚动 · 拖中间竖线调左右宽度 · 右侧读讲义</div>
       <div class="map-workspace">
@@ -809,12 +974,28 @@ class SlidePresentation {
         document.getElementById("nextSlide").onclick = () => this.showSlide(this.currentSlide + 1);
         document.getElementById("enterMap").onclick = () => this.showSlide(1);
     }
+    isFluid() {
+        return true;
+    }
     setupStageScale() {
         const scale = () => {
-            const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-            const x = (window.innerWidth - 1920 * factor) / 2;
-            const y = (window.innerHeight - 1080 * factor) / 2;
-            this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+            const fluid = this.isFluid();
+            document.documentElement.classList.toggle("fluid", fluid);
+            if (fluid) {
+                this.stage.style.transform = "";
+                if (window.innerWidth <= 900 && window.__mapApp && window.__mapApp.layout !== "ttb") {
+                    window.__mapApp.setLayout("ttb");
+                }
+            } else {
+                const factor = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+                const x = (window.innerWidth - 1920 * factor) / 2;
+                const y = (window.innerHeight - 1080 * factor) / 2;
+                this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+            }
+            if (window.__mapApp) {
+                window.__mapApp.syncCanvasSize();
+                window.__mapApp.drawWires();
+            }
         };
         scale();
         window.addEventListener("resize", scale);
@@ -878,6 +1059,12 @@ const MapApp = {
         document.getElementById("btnView").onclick = () => this.resetView();
         document.getElementById("btnLtr").onclick = () => this.setLayout("ltr");
         document.getElementById("btnTtb").onclick = () => this.setLayout("ttb");
+        const paneTree = document.getElementById("btnPaneTree");
+        const paneRead = document.getElementById("btnPaneRead");
+        if (paneTree && paneRead) {
+            paneTree.onclick = () => this.setPane("tree");
+            paneRead.onclick = () => this.setPane("read");
+        }
         this.bindViewport();
         this.bindSplitter();
         this.applyTransform();
@@ -1058,6 +1245,18 @@ const MapApp = {
         this.resetView();
         this.render();
     },
+    setPane(which) {
+        document.body.classList.toggle("pane-tree", which === "tree");
+        document.body.classList.toggle("pane-read", which === "read");
+        const paneTree = document.getElementById("btnPaneTree");
+        const paneRead = document.getElementById("btnPaneRead");
+        if (paneTree) paneTree.classList.toggle("on", which === "tree");
+        if (paneRead) paneRead.classList.toggle("on", which === "read");
+        requestAnimationFrame(() => {
+            this.syncCanvasSize();
+            this.drawWires();
+        });
+    },
     setLayout(mode) {
         this.layout = mode;
         document.getElementById("cols").classList.toggle("ttb", mode === "ttb");
@@ -1071,6 +1270,7 @@ const MapApp = {
         if (depth === 3) this.path = [this.path[0], this.path[1], id];
         this.l3Page = 0;
         this.render();
+        if (window.innerWidth <= 900 && this.path.length) this.setPane("read");
     },
     fillList(el, nodes, depth, activeId, twoCol) {
         el.innerHTML = "";
