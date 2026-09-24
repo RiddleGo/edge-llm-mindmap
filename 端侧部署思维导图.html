@@ -1010,6 +1010,7 @@ class SlidePresentation {
             if (fluid) {
                 this.stage.style.transform = "";
                 if (window.innerWidth <= 900 && window.__mapApp && window.__mapApp.layout !== "ttb") {
+                    window.__mapApp._forcedMobileTtb = true;
                     window.__mapApp.setLayout("ttb");
                 }
             } else {
@@ -1095,7 +1096,16 @@ const MapApp = {
         this.bindSplitter();
         this.applyTransform();
         const applyMobileLayout = () => {
-            if (window.innerWidth <= 900 && this.layout !== "ttb") this.setLayout("ttb");
+            const mobile = window.innerWidth <= 900;
+            if (mobile) {
+                if (this.layout !== "ttb") {
+                    this._forcedMobileTtb = true;
+                    this.setLayout("ttb");
+                }
+            } else if (this._forcedMobileTtb) {
+                this._forcedMobileTtb = false;
+                this.setLayout("ltr");
+            }
         };
         applyMobileLayout();
         window.addEventListener("resize", applyMobileLayout);
