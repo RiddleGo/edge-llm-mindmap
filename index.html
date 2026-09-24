@@ -803,6 +803,13 @@ html.fluid .deck-controls button {
 }
 
 @media (max-width: 900px) {
+    html.fluid .title-slide {
+        justify-content: flex-start;
+        overflow: auto;
+        padding-top: 18vh;
+    }
+    html.fluid .title-slide h1 { font-size: clamp(28px, 11vw, 48px); }
+    html.fluid .title-lead { font-size: 15px; }
     html.fluid .map-legend,
     html.fluid #btnLtr,
     html.fluid #btnTtb,
@@ -1087,7 +1094,11 @@ const MapApp = {
         this.bindViewport();
         this.bindSplitter();
         this.applyTransform();
-        if (window.innerWidth <= 900) this.setLayout("ttb");
+        const applyMobileLayout = () => {
+            if (window.innerWidth <= 900 && this.layout !== "ttb") this.setLayout("ttb");
+        };
+        applyMobileLayout();
+        window.addEventListener("resize", applyMobileLayout);
         document.addEventListener("keydown", (e) => {
             if (deck.currentSlide !== 1) return;
             if (e.target && (e.target.isContentEditable || ["INPUT","TEXTAREA"].includes(e.target.tagName))) return;
@@ -1451,9 +1462,8 @@ function esc(s) {
 }
 
 const deck = new SlidePresentation();
-MapApp.init();
-
 window.__mapApp = MapApp;
+MapApp.init();
 
 /* === Curriculum tab switch === */
 (function setupCurrTabs() {
