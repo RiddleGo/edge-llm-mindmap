@@ -815,7 +815,6 @@ html.fluid .deck-controls button {
         margin-left: auto;
     }
     html.fluid .map-top h2 { font-size: 18px; margin-right: 4px; }
-    html.fluid .crumb { flex: 1 1 100%; order: 8; font-size: 12px; }
     html.fluid .map-workspace {
         display: flex;
         flex-direction: column;
@@ -850,11 +849,31 @@ html.fluid .deck-controls button {
         min-width: 0;
         gap: 12px;
     }
+    html.fluid .cols.ttb .list,
+    html.fluid .list {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        width: 100%;
+    }
+    html.fluid .cols.ttb .col,
+    html.fluid .col.show {
+        flex-direction: column;
+        flex-wrap: nowrap;
+        width: 100%;
+        max-width: none;
+        min-width: 0;
+    }
     html.fluid .node {
         min-height: 44px;
         font-size: 15px;
         padding: 10px 12px;
+        width: 100%;
+        max-width: none;
+        text-align: left;
     }
+    html.fluid .map-top .curr-tabs { margin-right: auto; }
+    html.fluid #btnReset { margin-left: 0; }
+    html.fluid .crumb { display: none; }
     html.fluid .explain-block p,
     html.fluid .detail > p {
         font-size: 16px;
@@ -1068,6 +1087,7 @@ const MapApp = {
         this.bindViewport();
         this.bindSplitter();
         this.applyTransform();
+        if (window.innerWidth <= 900) this.setLayout("ttb");
         document.addEventListener("keydown", (e) => {
             if (deck.currentSlide !== 1) return;
             if (e.target && (e.target.isContentEditable || ["INPUT","TEXTAREA"].includes(e.target.tagName))) return;
