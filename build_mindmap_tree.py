@@ -336,11 +336,11 @@ def titles_alike(a: str, b: str) -> bool:
 def adaptive_depth(tree: dict) -> None:
     """Keep L3 only when a theme has enough distinct points; otherwise stop at theme.
 
-    - 0–4 leaves → fold into L2.d（两/三层：根→章→主题）
-    - 5+ leaves → keep L3（四层：根→章→主题→知识点）
+    - fewer than KEEP_L3_MIN leaves → fold into L2.d（根→章→主题）
+    - KEEP_L3_MIN+ leaves → keep L3（根→章→主题→知识点）
     - L1 with a lone empty「要点」wrapper → promote its kids
     """
-    KEEP_L3_MIN = 5
+    KEEP_L3_MIN = 99
 
     for c1 in tree.get("kids") or []:
         kids = c1.get("kids") or []
