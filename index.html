@@ -751,6 +751,23 @@ svg {
 }
 .curr-tab:hover:not(.on) { color: var(--accent-bright); }
 
+.curr-link {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font: 600 12px/1 var(--font-mono);
+    padding: 8px 14px;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(8px);
+}
+.curr-link:hover { color: var(--accent-bright); border-color: var(--accent-dim); }
+
 .pane-tabs { display: none; }
 .tool.pane-tab { min-height: 36px; }
 
@@ -950,6 +967,7 @@ html.fluid .deck-controls button {
       <div class="title-kicker reveal">EDGE LLM · MIND MAP</div>
       <h1 class="reveal">端侧大模型部署</h1>
       <p class="title-lead reveal">左边点目录，右边读讲义。顶栏可切「端侧主线 / JD补全」：主线走部署连载，补全页对标招聘缺口。</p>
+      <p class="title-lead reveal" style="margin-top:10px;font-size:0.95em"><a href="finance/" style="color:var(--accent-bright)">财务三栏 →</a> 持仓 · 每月财务 · 分析</p>
       <button class="enter-btn reveal" id="enterMap" type="button">点击进入地图 →</button>
       <div class="title-hint reveal">空格 / → 也可进入　R 复位树　0 复位视图　L 切换方向</div>
     </section>
@@ -962,6 +980,7 @@ html.fluid .deck-controls button {
           <button class="curr-tab on" id="tabMain" type="button" role="tab" aria-selected="true">端侧主线</button>
           <button class="curr-tab" id="tabJd" type="button" role="tab" aria-selected="false">JD补全</button>
         </div>
+        <a class="curr-link" href="finance/">财务</a>
         <div class="crumb" id="crumb">根节点</div>
         <div class="map-legend" aria-hidden="true">
           <span><i class="dot"></i>普通</span>
