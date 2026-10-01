@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>持仓 · Russshare</title>
-  <meta name="description" content="现有持仓">
+  <title>每月财务 · Russshare</title>
   <meta name="theme-color" content="#B8860B">
   <link rel="stylesheet" href="kb-theme.css">
   <link rel="stylesheet" href="portal-home.css">
@@ -21,24 +20,28 @@
         <div class="kb-hero-row">
           <img src="assets/lcai-kb-logo.svg" class="kb-hero-logo" alt="" aria-hidden="true">
           <div>
-            <h1 class="kb-hero-title"><span class="gold">持仓</span></h1>
-            <p class="kb-hero-sub" id="snap-asof"></p>
+            <h1 class="kb-hero-title"><span class="gold">每月财务</span></h1>
+            <p class="kb-hero-sub">到手 2.5 万 = 家人 1.5 万 + 留存 1 万。自己生活费用加班费。</p>
           </div>
         </div>
       </section>
       <div class="kb-main-inner">
-        <div id="snap-holdings"></div>
+        <div id="month-metrics" class="snap-metrics"></div>
+        <div class="snap-table-wrap">
+          <table class="snap-table" id="month-table"></table>
+        </div>
+        <div id="month-detail"></div>
       </div>
     </div>
   </main>
   <script src="site-nav-data.js"></script>
   <script src="kb-shell.js"></script>
-  <script src="snapshot-data.js"></script>
-  <script src="portal-home.js"></script>
+  <script src="monthly-data.js"></script>
+  <script src="monthly.js"></script>
   <script>
-    KBShell.renderPortalSidebar("holdings");
+    KBShell.renderPortalSidebar("monthly");
     KBShell.initSidebar();
-    PortalHome.init();
+    MonthlyPage.init();
   </script>
 </body>
 </html>
