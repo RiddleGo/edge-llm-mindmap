@@ -751,6 +751,19 @@ svg {
 }
 .curr-tab:hover:not(.on) { color: var(--accent-bright); }
 
+.emmm {
+    position: fixed;
+    right: 14px;
+    bottom: 10px;
+    z-index: 40;
+    color: rgba(154, 170, 192, 0.22);
+    font: 500 11px/1 var(--font-mono);
+    letter-spacing: 0.18em;
+    text-decoration: none;
+    user-select: none;
+}
+.emmm:hover { color: rgba(158, 238, 255, 0.55); }
+
 .pane-tabs { display: none; }
 .tool.pane-tab { min-height: 36px; }
 
@@ -1013,6 +1026,7 @@ html.fluid .deck-controls button {
   </main>
 </div>
 
+<a class="emmm" href="finance/">EMMM</a>
 <nav class="deck-controls" aria-label="slides">
   <button type="button" id="prevSlide">←</button>
   <span id="pageLabel">1 / 2</span>
