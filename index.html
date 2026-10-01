@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>持仓 · Russshare</title>
+  <meta name="description" content="现有持仓">
+  <meta name="theme-color" content="#B8860B">
+  <link rel="stylesheet" href="kb-theme.css">
+  <link rel="stylesheet" href="portal-home.css">
+</head>
+<body class="kb-body">
+  <button type="button" class="kb-hamburger" aria-label="打开菜单">☰</button>
+  <aside class="kb-sidebar" id="kb-sidebar">
+    <div class="kb-sidebar-header"></div>
+    <nav class="kb-sidebar-nav" aria-label="主导航"></nav>
+  </aside>
+  <main class="kb-main">
+    <div class="kb-page-wrap">
+      <section class="kb-hero-section">
+        <div class="kb-hero-row">
+          <img src="assets/lcai-kb-logo.svg" class="kb-hero-logo" alt="" aria-hidden="true">
+          <div>
+            <h1 class="kb-hero-title"><span class="gold">持仓</span></h1>
+            <p class="kb-hero-sub" id="snap-asof"></p>
+          </div>
+        </div>
+      </section>
+      <div class="kb-main-inner">
+        <div id="snap-holdings"></div>
+      </div>
+    </div>
+  </main>
+  <script src="site-nav-data.js"></script>
+  <script src="kb-shell.js"></script>
+  <script src="snapshot-data.js"></script>
+  <script src="portal-home.js"></script>
+  <script>
+    KBShell.renderPortalSidebar("holdings");
+    KBShell.initSidebar();
+    PortalHome.init();
+  </script>
+</body>
+</html>

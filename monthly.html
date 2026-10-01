@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每月财务 · Russshare</title>
+  <meta name="theme-color" content="#B8860B">
+  <link rel="stylesheet" href="kb-theme.css">
+  <link rel="stylesheet" href="portal-home.css">
+</head>
+<body class="kb-body">
+  <button type="button" class="kb-hamburger" aria-label="打开菜单">☰</button>
+  <aside class="kb-sidebar" id="kb-sidebar">
+    <div class="kb-sidebar-header"></div>
+    <nav class="kb-sidebar-nav" aria-label="主导航"></nav>
+  </aside>
+  <main class="kb-main">
+    <div class="kb-page-wrap">
+      <section class="kb-hero-section">
+        <div class="kb-hero-row">
+          <img src="assets/lcai-kb-logo.svg" class="kb-hero-logo" alt="" aria-hidden="true">
+          <div>
+            <h1 class="kb-hero-title"><span class="gold">每月财务</span></h1>
+            <p class="kb-hero-sub">一个月一行。工资、生活开支、还款没有账单就保持未记。</p>
+          </div>
+        </div>
+      </section>
+      <div class="kb-main-inner">
+        <div class="snap-table-wrap">
+          <table class="snap-table" id="month-table"></table>
+        </div>
+        <div id="month-detail"></div>
+      </div>
+    </div>
+  </main>
+  <script src="site-nav-data.js"></script>
+  <script src="kb-shell.js"></script>
+  <script src="monthly-data.js"></script>
+  <script src="monthly.js"></script>
+  <script>
+    KBShell.renderPortalSidebar("monthly");
+    KBShell.initSidebar();
+    MonthlyPage.init();
+  </script>
+</body>
+</html>
