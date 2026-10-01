@@ -1,4 +1,3 @@
-/** 全站两栏：每月财务、分析。不展示证券持仓。 */
 window.SITE_NAV = {
   brand: {
     title: "Russshare",
@@ -11,7 +10,8 @@ window.SITE_NAV = {
       id: "main",
       title: "内容",
       links: [
-        { href: "index.html", label: "每月财务", id: "monthly" },
+        { href: "index.html", label: "持仓", id: "holdings" },
+        { href: "monthly.html", label: "每月财务", id: "monthly" },
         { href: "analysis/index.html", label: "分析", id: "analysis" },
       ],
     },

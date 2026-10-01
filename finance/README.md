@@ -2,13 +2,10 @@
 
 访问：https://riddlego.github.io/edge-llm-mindmap/finance/
 
-主站右下角 **EMMM** 进入。本目录不展示证券持仓。
-
-| 栏目 | 页面 |
-|------|------|
-| 每月财务 | [index.html](index.html) |
-| 分析 | [analysis/index.html](analysis/index.html) |
+| 栏目 | 页面 | 展示 |
+|------|------|------|
+| 持仓 | [index.html](index.html) | 证券持仓 |
+| 每月财务 | [monthly.html](monthly.html) | 只记工资分配，不展示证券、不展示负债 |
+| 分析 | [analysis/index.html](analysis/index.html) | 分析记录 |
 
 工资口径：到手 2.5 万 = 家人 1.5 万 + 留存 1 万；自己生活费用加班费。
-
-改数：`monthly-data.js`、`analysis/entries.js`
