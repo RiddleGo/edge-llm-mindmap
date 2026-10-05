@@ -12,7 +12,10 @@
   }
 
   function eventSortKey(dateLabel, year) {
-    var first = String(dateLabel).split(/[–\-]/)[0].trim();
+    var label = String(dateLabel).trim();
+    var full = label.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+    if (full) return Number(full[1]) * 10000 + Number(full[2]) * 100 + Number(full[3]);
+    var first = label.split(/[–\-]/)[0].trim();
     var md = parseMd(first);
     return year * 10000 + md.m * 100 + md.d;
   }
