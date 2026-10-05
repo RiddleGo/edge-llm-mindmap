@@ -121,6 +121,32 @@
     (data.groups || []).forEach(function (g) {
       html += renderGroup(g);
     });
+    if (data.end && data.end.rows && data.end.rows.length) {
+      html += '<section class="todo-end"><h3>' + inline(data.end.title || "结果") + "</h3>";
+      if (data.end.note) html += '<p class="todo-order">' + inline(data.end.note) + "</p>";
+      html +=
+        '<div class="an-table-wrap"><table class="an-table"><thead><tr>' +
+        (data.end.head || [])
+          .map(function (h) {
+            return "<th>" + inline(h) + "</th>";
+          })
+          .join("") +
+        "</tr></thead><tbody>" +
+        data.end.rows
+          .map(function (r) {
+            return (
+              "<tr>" +
+              r
+                .map(function (c) {
+                  return "<td>" + inline(c) + "</td>";
+                })
+                .join("") +
+              "</tr>"
+            );
+          })
+          .join("") +
+        "</tbody></table></div></section>";
+    }
     if (data.never && data.never.length) {
       html +=
         '<section class="todo-never"><h3>不要做</h3><ul class="an-list">' +
