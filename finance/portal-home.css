@@ -931,12 +931,91 @@ a.portal-method-step:hover {
   font-weight: 700;
 }
 
+.bp-meta {
+  color: var(--kb-text2);
+  font-size: 0.8rem;
+  margin: 0 0 12px;
+}
+
+.bp-caption {
+  margin: 14px 0 6px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--kb-navy);
+}
+
+.bp-section h2 {
+  font-size: 1.05rem;
+  margin: 22px 0 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--kb-gold);
+}
+
+.bp-section h3 {
+  font-size: 0.92rem;
+  margin: 16px 0 8px;
+}
+
+.bp-dept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 0 0 8px;
+}
+
+.bp-dept,
+.bp-phase {
+  background: var(--kb-bg);
+  border: 1px solid var(--kb-border);
+  border-radius: 12px;
+  padding: 14px 14px 6px;
+}
+
+.bp-dept h3,
+.bp-phase h3 {
+  margin: 0 0 8px;
+  font-size: 0.98rem;
+}
+
+.bp-label {
+  display: block;
+  margin: 8px 0 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--kb-gold);
+}
+
+.bp-dept p,
+.bp-phase p {
+  margin: 0 0 8px;
+}
+
+.bp-phases {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0 0 8px;
+}
+
+.bp-phase.is-now {
+  border-color: rgba(184, 134, 11, 0.55);
+}
+
+.bp-when {
+  color: var(--kb-text2);
+  font-size: 0.78rem;
+}
+
 @media (max-width: 720px) {
   .analysis-toc {
     grid-template-columns: 1fr;
   }
   .analysis-entry {
     padding: 14px 14px;
+  }
+  .bp-phases {
+    grid-template-columns: 1fr;
   }
 }
 
