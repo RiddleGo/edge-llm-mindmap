@@ -12,7 +12,7 @@ window.SITE_NAV = {
       links: [
         { href: "index.html", label: "持仓", id: "holdings" },
         { href: "monthly.html", label: "每月财务", id: "monthly" },
-        { href: "analysis/index.html", label: "分析", id: "analysis" },
+        { href: "analysis/index.html", label: "待办", id: "analysis" },
       ],
     },
   ],
