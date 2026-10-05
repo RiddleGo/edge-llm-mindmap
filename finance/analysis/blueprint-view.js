@@ -1,4 +1,4 @@
-/** 人生公司蓝图。数据在 blueprint-data.js。 */
+/** 人生公司蓝图。 */
 (function (global) {
   "use strict";
 
@@ -10,163 +10,186 @@
       .replace(/"/g, "&quot;");
   }
 
-  function inline(s) {
-    return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  }
-
-  function paras(list) {
-    return (list || [])
-      .map(function (p) {
-        return "<p>" + inline(p) + "</p>";
-      })
-      .join("");
-  }
-
-  function table(t) {
-    if (!t || !t.rows) return "";
-    var cap = t.caption ? '<p class="bp-caption">' + inline(t.caption) + "</p>" : "";
+  function metrics(list) {
     return (
-      cap +
-      '<div class="an-table-wrap"><table class="an-table"><thead><tr>' +
-      (t.head || [])
-        .map(function (h) {
-          return "<th>" + inline(h) + "</th>";
-        })
-        .join("") +
-      "</tr></thead><tbody>" +
-      t.rows
-        .map(function (r) {
+      '<div class="bp-metrics">' +
+      list
+        .map(function (m) {
           return (
-            "<tr>" +
-            r
-              .map(function (c) {
-                return "<td>" + inline(c) + "</td>";
-              })
-              .join("") +
-            "</tr>"
+            '<div class="bp-metric"><b>' +
+            esc(m.value) +
+            "</b><i>" +
+            esc(m.label) +
+            "</i><small>" +
+            esc(m.note) +
+            "</small></div>"
           );
         })
         .join("") +
-      "</tbody></table></div>"
+      "</div>"
     );
   }
 
-  function ul(items) {
-    if (!items || !items.length) return "";
+  function trio(items) {
     return (
-      '<ul class="an-list">' +
+      '<div class="bp-trio">' +
       items
-        .map(function (t) {
-          return "<li>" + inline(t) + "</li>";
+        .map(function (it) {
+          return "<article><h3>" + esc(it.h) + "</h3><p>" + esc(it.p) + "</p></article>";
         })
         .join("") +
-      "</ul>"
+      "</div>"
     );
   }
 
-  function dept(d) {
+  function cell(c) {
     return (
-      '<article class="bp-dept">' +
-      "<h3>" +
-      esc(d.name) +
-      "</h3>" +
-      '<span class="bp-label">职责</span><p>' +
-      inline(d.duty) +
-      "</p>" +
-      '<span class="bp-label">当前</span><p>' +
-      inline(d.now) +
-      "</p>" +
-      '<span class="bp-label">禁止</span>' +
-      ul(d.bans) +
-      '<span class="bp-label">近端</span><p>' +
-      inline(d.kpi) +
+      '<article class="bp-cell"><span class="bp-chip">' +
+      esc(c.chip) +
+      "</span><h3>" +
+      esc(c.name) +
+      "</h3><p>" +
+      esc(c.text) +
       "</p></article>"
     );
   }
 
-  function phase(p) {
+  function org(o) {
     return (
-      '<article class="bp-phase' +
-      (p.now ? " is-now" : "") +
-      '"><h3>' +
-      esc(p.name) +
-      '</h3><p class="bp-when">' +
-      esc(p.when) +
-      "</p>" +
-      ul(p.lines) +
-      "</article>"
+      '<div class="bp-org">' +
+      '<article class="bp-org-head"><span class="bp-chip">' +
+      esc(o.head.chip) +
+      "</span><h3>" +
+      esc(o.head.name) +
+      "</h3><p>" +
+      esc(o.head.text) +
+      "</p></article>" +
+      '<div class="bp-row">' +
+      o.row.map(cell).join("") +
+      "</div>" +
+      '<div class="bp-row two">' +
+      o.base.map(cell).join("") +
+      "</div></div>" +
+      '<div class="bp-order">' +
+      o.order
+        .map(function (name, i) {
+          return (i ? '<i>→</i>' : "") + "<span>" + esc(name) + "</span>";
+        })
+        .join("") +
+      "</div>"
     );
   }
 
-  function subsection(s) {
-    var html = "<h3>" + esc(s.title) + "</h3>";
-    html += paras(s.paragraphs);
-    html += table(s.table);
-    if (s.list && s.list.length) {
-      if (s.listTitle) html += '<p class="bp-caption">' + inline(s.listTitle) + "</p>";
-      html += ul(s.list);
-    }
-    html += paras(s.paragraphsAfter);
-    if (s.note) html += '<p class="snap-note">' + inline(s.note) + "</p>";
-    return html;
+  function rail(phases) {
+    return (
+      '<ol class="bp-rail">' +
+      phases
+        .map(function (p) {
+          return (
+            '<li class="' +
+            (p.now ? "is-now" : "") +
+            '"><div class="bp-when">' +
+            esc(p.when) +
+            "</div><div><h3>" +
+            esc(p.name) +
+            "</h3><p>" +
+            esc(p.text) +
+            "</p></div></li>"
+          );
+        })
+        .join("") +
+      "</ol>"
+    );
   }
 
-  function section(s) {
-    var html = '<section class="bp-section"><h2>' + esc(s.title) + "</h2>";
-    html += paras(s.paragraphs);
-    html += table(s.table);
-    (s.tables || []).forEach(function (t) {
-      html += table(t);
-    });
-    html += paras(s.paragraphsAfter);
-    if (s.depts && s.depts.length) {
-      html += '<div class="bp-dept-grid">' + s.depts.map(dept).join("") + "</div>";
-    }
-    if (s.phases && s.phases.length) {
-      html += '<div class="bp-phases">' + s.phases.map(phase).join("") + "</div>";
-    }
-    (s.subsections || []).forEach(function (sub) {
-      html += subsection(sub);
-    });
-    (s.groups || []).forEach(function (g) {
-      html += '<p class="bp-caption">' + inline(g.title) + "</p>" + ul(g.items);
-    });
-    if (s.ol && s.ol.length) {
-      if (s.olTitle) html += '<p class="bp-caption">' + inline(s.olTitle) + "</p>";
-      html +=
-        '<ol class="an-list">' +
-        s.ol
+  function board(b) {
+    function col(title, items) {
+      return (
+        "<section><h3>" +
+        esc(title) +
+        "</h3><ul>" +
+        items
           .map(function (t) {
-            return "<li>" + inline(t) + "</li>";
+            return "<li>" + esc(t) + "</li>";
           })
           .join("") +
-        "</ol>";
+        "</ul></section>"
+      );
     }
-    html += "</section>";
-    return html;
+    return '<div class="bp-board">' + col("默认否决", b.no) + col("可以做", b.yes) + "</div>";
+  }
+
+  function questions(list) {
+    return (
+      '<div class="bp-questions">' +
+      list
+        .map(function (q) {
+          return "<article><b>" + esc(q.n) + "</b><p>" + esc(q.q) + "</p></article>";
+        })
+        .join("") +
+      "</div>"
+    );
+  }
+
+  function plate(no, title, inner) {
+    return (
+      '<section class="bp-plate"><header class="bp-plate-h"><span class="bp-no">' +
+      esc(no) +
+      "</span><h2>" +
+      esc(title) +
+      "</h2></header>" +
+      inner +
+      "</section>"
+    );
   }
 
   function init() {
     var root = document.getElementById("blueprint");
-    var data = global.BLUEPRINT;
-    if (!root || !data) return;
-    var html =
-      '<p class="bp-meta">' +
-      esc(data.date) +
-      " · " +
-      esc(data.status) +
+    var d = global.BLUEPRINT;
+    if (!root || !d) return;
+
+    var road =
+      '<p class="bp-lead">' +
+      esc(d.road.lead) +
       "</p>" +
-      '<p class="an-callout">' +
-      inline(data.lead) +
+      rail(d.road.phases) +
+      '<div class="bp-lock"><h3>' +
+      esc(d.road.lockedTitle) +
+      "</h3><ul>" +
+      d.road.locked
+        .map(function (t) {
+          return "<li>" + esc(t) + "</li>";
+        })
+        .join("") +
+      '</ul><p class="bp-rule">' +
+      esc(d.road.unlock) +
+      "</p></div>";
+
+    root.innerHTML =
+      '<article class="bp-sheet">' +
+      '<p class="bp-kicker"><span>' +
+      esc(d.kicker) +
+      "</span><span>" +
+      esc(d.date) +
+      "</span></p>" +
+      "<h1 class=\"bp-title\">" +
+      esc(d.title) +
+      "</h1>" +
+      '<p class="bp-thesis">' +
+      esc(d.thesis) +
       "</p>" +
-      '<p class="an-callout">' +
-      inline(data.diagnosis) +
-      "</p>";
-    (data.sections || []).forEach(function (s) {
-      html += section(s);
-    });
-    html += '<p class="an-callout">' + inline(data.close) + "</p>";
-    root.innerHTML = '<div class="analysis-entry is-lead bp-page">' + html + "</div>";
+      metrics(d.metrics) +
+      plate(
+        "01",
+        "定位",
+        '<p class="bp-lead">' + esc(d.place.lead) + "</p>" + trio(d.place.items)
+      ) +
+      plate("02", "结构", '<p class="bp-lead">' + esc(d.org.lead) + "</p>" + org(d.org)) +
+      plate("03", "路线", road) +
+      plate("04", "纪律", board(d.board) + questions(d.questions)) +
+      '<footer class="bp-close"><p>' +
+      esc(d.close) +
+      '</p><a href="index.html">卖单在待办</a></footer></article>';
   }
 
   global.BlueprintPage = { init: init };
